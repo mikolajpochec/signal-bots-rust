@@ -24,11 +24,10 @@ To ensure stability and keep the project lightweight, `bots-signal` acts as an R
 
 ### 1. Start `signal-cli` in Daemon Mode
 
-The bot requires `signal-cli` to be running in JSON-RPC daemon mode.
+The bot requires `signal-cli` to be running in JSON-RPC daemon mode. You can easily start it using the built-in bot command (after configuring your `bot.toml` in step 2):
 
 ```bash
-# Using a Unix socket (recommended)
-signal-cli -u YOUR_NUMBER daemon --socket /tmp/signal-cli.sock
+cargo run -- daemon --config bot.toml
 ```
 
 ### 2. Configure the Bot
