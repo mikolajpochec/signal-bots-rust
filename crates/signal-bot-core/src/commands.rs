@@ -29,14 +29,22 @@ impl CommandRouter {
         }
     }
 
-    /// Register a command with a static text response
     pub fn register_static(&mut self, trigger: &str, description: &str, response: &str) {
         let response = response.to_string();
         self.register(
             trigger,
             description,
-            Box::new(move |ctx, _args| {
-                let resp = response.clone();
+            Box::new(move |ctx, args| {
+                let mut resp = response.clone();
+                
+                // Replace {args} with all arguments joined together
+                resp = resp.replace("{args}", &args.join(" "));
+                
+                // Replace {1}, {2}, etc. with specific arguments
+                for (i, arg) in args.iter().enumerate() {
+                    resp = resp.replace(&format!("{{{}}}", i + 1), arg);
+                }
+                
                 Box::pin(async move { ctx.reply(&resp).await })
             }),
         );
