@@ -4,6 +4,7 @@ use tracing::debug;
 
 /// Data passed into each Lua plugin invocation.
 /// Wraps the RPC client + message metadata so Lua can call ctx:reply(), etc.
+#[derive(Clone)]
 pub struct PluginContext {
     pub client: SignalCliClient,
     pub sender_uuid: String,

@@ -166,6 +166,38 @@ impl PluginManager {
         Some(result)
     }
 
+    /// Broadcast a reaction context to all loaded plugins that define `on_reaction`.
+    pub async fn broadcast_reaction(&self, plugin_ctx: PluginContext) {
+        let mut tasks = Vec::new();
+        for (trigger, info) in &self.plugins {
+            let source = info.source.clone();
+            let trigger_owned = trigger.clone();
+            let ctx = plugin_ctx.clone();
+
+            tasks.push(tokio::task::spawn_blocking(move || {
+                let lua = Lua::new();
+
+                if let Err(_) = lua.load(&source).exec() {
+                    return;
+                }
+
+                if let Ok(on_reaction) = lua.globals().get::<LuaFunction>("on_reaction") {
+                    if let Ok(_) = lua.globals().set("ctx", ctx) {
+                        if let Ok(ctx_val) = lua.globals().get::<LuaValue>("ctx") {
+                            if let Err(e) = on_reaction.call::<()>(ctx_val) {
+                                tracing::error!("Error executing on_reaction in plugin {}: {}", trigger_owned, e);
+                            }
+                        }
+                    }
+                }
+            }));
+        }
+
+        for task in tasks {
+            let _ = task.await;
+        }
+    }
+
     /// Returns an iterator over all loaded plugin triggers and descriptions.
     pub fn list(&self) -> impl Iterator<Item = (&str, &str)> {
         self.plugins

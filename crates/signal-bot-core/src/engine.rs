@@ -57,7 +57,8 @@ impl Engine {
                         Some(Ok(envelope)) => {
                             if let Some(data) = &envelope.data_message {
                                 let text = data.message.clone().unwrap_or_default();
-                                if text.is_empty() {
+                                let has_reaction = data.reaction.is_some();
+                                if text.is_empty() && !has_reaction {
                                     continue;
                                 }
 
@@ -86,11 +87,11 @@ impl Engine {
 
                                 let ctx = MessageContext {
                                     client: self.client.clone(),
-                                    sender_uuid,
+                                    sender_uuid: sender_uuid.clone(),
                                     sender_number: envelope.source.clone(),
                                     sender_name: envelope.source_name.clone(),
-                                    group_id,
-                                    text,
+                                    group_id: group_id.clone(),
+                                    text: text.clone(),
                                     timestamp: envelope.timestamp.unwrap_or(0),
                                     is_group,
                                 };
@@ -121,6 +122,10 @@ impl Engine {
                                                             is_group: ctx.is_group,
                                                             args,
                                                             bot_uptime: self.start_time.elapsed().as_secs(),
+                                                            reaction_emoji: None,
+                                                            reaction_target_author: None,
+                                                            reaction_target_timestamp: None,
+                                                            reaction_is_remove: None,
                                                         };
                                                         if let Some(Err(e)) = pm.execute(trigger, plugin_ctx).await {
                                                             error!("Plugin error: {}", e);
@@ -129,6 +134,28 @@ impl Engine {
                                                 }
                                             }
                                         }
+                                    }
+                                }
+
+                                if let Some(reaction) = &data.reaction {
+                                    if let Some(pm) = &self.plugin_manager {
+                                        let plugin_ctx = signal_bot_plugins::lua_api::PluginContext {
+                                            client: self.client.clone(),
+                                            sender_uuid: sender_uuid.clone(),
+                                            sender_number: envelope.source.clone(),
+                                            sender_name: envelope.source_name.clone(),
+                                            group_id: group_id.clone(),
+                                            text: text.clone(),
+                                            timestamp: envelope.timestamp.unwrap_or(0),
+                                            is_group,
+                                            args: vec![],
+                                            bot_uptime: self.start_time.elapsed().as_secs(),
+                                            reaction_emoji: Some(reaction.emoji.clone()),
+                                            reaction_target_author: reaction.target_author.clone(),
+                                            reaction_target_timestamp: reaction.target_sent_timestamp,
+                                            reaction_is_remove: reaction.is_remove,
+                                        };
+                                        pm.broadcast_reaction(plugin_ctx).await;
                                     }
                                 }
                             }
