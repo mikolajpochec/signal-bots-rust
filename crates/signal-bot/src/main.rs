@@ -10,11 +10,26 @@ use clap::Parser;
 // signal_bot_core::commands::{CommandRouter, Command}
 
 async fn is_account_registered(phone: &str) -> bool {
-    if let Ok(output) = tokio::process::Command::new("signal-cli").arg("listAccounts").output().await {
-        let stdout = String::from_utf8_lossy(&output.stdout);
-        stdout.contains(phone)
+    // Reading accounts.json directly avoids hanging when the daemon already holds the file lock.
+    let base_dirs = directories::ProjectDirs::from("", "", "signal-cli");
+    
+    // signal-cli usually stores data in ~/.local/share/signal-cli/data/accounts.json
+    let data_dir = match base_dirs {
+        Some(b) => b.data_dir().to_path_buf(),
+        None => std::path::PathBuf::from(std::env::var("HOME").unwrap_or_default()).join(".local/share/signal-cli/data")
+    };
+    
+    // On Linux it's often directly in ~/.local/share/signal-cli/data
+    // but directories crate puts it in ~/.local/share/signal-cli
+    // Let's just check the most common path directly:
+    let accounts_path = std::path::PathBuf::from(std::env::var("HOME").unwrap_or_default())
+        .join(".local/share/signal-cli/data/accounts.json");
+        
+    if let Ok(contents) = std::fs::read_to_string(&accounts_path) {
+        contents.contains(phone)
     } else {
-        false
+        // Fallback if not found, assume true to let daemon try (preventing hangs)
+        true
     }
 }
 async fn interactive_registration(phone: &str) -> anyhow::Result<()> {

@@ -142,6 +142,8 @@ impl SignalCliClient {
             return;
         }
 
+        tracing::info!("RAW JSON-RPC: {}", line);
+
         // Try to parse as JSON-RPC response (has an id field)
         if let Ok(resp) = serde_json::from_str::<JsonRpcResponse>(line) {
             if let Some(id) = resp.id {
