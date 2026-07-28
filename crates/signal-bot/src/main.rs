@@ -218,8 +218,9 @@ async fn main() -> anyhow::Result<()> {
                 match pm.load_all() {
                     Ok(count) => {
                         tracing::info!("Loaded {} Lua plugin(s)", count);
-                        for (trigger, desc) in pm.list() {
-                            router.add_external_help(trigger, desc);
+                        for (trigger, desc, aliases) in pm.list() {
+                            let alias_strings: Vec<String> = aliases.iter().map(|s| s.to_string()).collect();
+                            router.add_external_help(trigger, desc, alias_strings);
                         }
                         Some(pm)
                     }

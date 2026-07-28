@@ -259,13 +259,14 @@ impl PluginManager {
         }
     }
 
-    /// Returns a deduplicated list of all loaded plugin triggers and descriptions.
-    pub fn list(&self) -> Vec<(&str, &str)> {
+    /// Returns a deduplicated list of all loaded plugin triggers, descriptions, and aliases.
+    pub fn list(&self) -> Vec<(&str, &str, Vec<&str>)> {
         let mut seen = std::collections::HashSet::new();
         let mut results = Vec::new();
         for info in self.plugins.values() {
             if seen.insert(info.trigger.as_str()) {
-                results.push((info.trigger.as_str(), info.description.as_str()));
+                let aliases: Vec<&str> = info.aliases.iter().map(|s| s.as_str()).collect();
+                results.push((info.trigger.as_str(), info.description.as_str(), aliases));
             }
         }
         results
