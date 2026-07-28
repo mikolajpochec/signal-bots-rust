@@ -9,6 +9,54 @@ use clap::Parser;
 // signal_bot_core::engine::Engine
 // signal_bot_core::commands::{CommandRouter, Command}
 
+async fn interactive_registration(client: &signal_bot_rpc::client::SignalCliClient, phone: &str) -> anyhow::Result<()> {
+    use std::io::Write;
+    
+    println!("⚠️  Bot is not registered with Signal yet.");
+    println!("Attempting to register account {}...", phone);
+    
+    // First try without captcha
+    match client.register(phone, None, false).await {
+        Ok(_) => {
+            println!("✅ Registration request sent successfully.");
+        }
+        Err(e) => {
+            let err_str = e.to_string().to_lowercase();
+            if err_str.contains("captcha") {
+                println!("🛡️  Signal requires a CAPTCHA token to register.");
+                println!("1. Go to: https://signalcaptchas.org/registration/generate.html");
+                println!("2. Solve the captcha.");
+                println!("3. Copy the 'signalcaptcha://...' link or token.");
+                print!("Paste the token here: ");
+                std::io::stdout().flush()?;
+                
+                let mut captcha = String::new();
+                std::io::stdin().read_line(&mut captcha)?;
+                let captcha = captcha.trim();
+                
+                println!("Retrying registration with CAPTCHA...");
+                client.register(phone, Some(captcha), false).await?;
+                println!("✅ Registration request sent successfully.");
+            } else {
+                anyhow::bail!("Failed to register: {}", e);
+            }
+        }
+    }
+
+    print!("Enter the SMS verification code you received: ");
+    std::io::stdout().flush()?;
+    
+    let mut code = String::new();
+    std::io::stdin().read_line(&mut code)?;
+    let code = code.trim().replace("-", ""); // Strip dashes if any
+
+    println!("Verifying code...");
+    client.verify(phone, &code, None).await?;
+    
+    println!("🎉 Successfully registered and verified!");
+    Ok(())
+}
+
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     let args = cli::Cli::parse();
@@ -27,6 +75,14 @@ async fn main() -> anyhow::Result<()> {
             } else {
                 signal_bot_rpc::client::SignalCliClient::connect_unix(&config_data.account.socket).await?
             };
+
+            // Auto-registration check
+            if let Err(e) = client.whoami().await {
+                tracing::warn!("Failed to identify account (might not be registered): {}", e);
+                interactive_registration(&client, &config_data.account.phone).await?;
+            } else {
+                tracing::info!("Account is registered.");
+            }
 
             let mut router = signal_bot_core::commands::CommandRouter::new(&config_data.bot.prefix);
             
@@ -56,6 +112,19 @@ async fn main() -> anyhow::Result<()> {
                 client, router, None, vec![], plugin_manager,
             );
             engine.run().await?;
+        },
+        cli::Command::Daemon { config } => {
+            let config_data = config::BotConfig::load(&config)?;
+            let socket = config_data.account.socket;
+            let phone = config_data.account.phone;
+            
+            println!("Starting signal-cli daemon for {} on {}", phone, socket);
+            let mut cmd = std::process::Command::new("signal-cli");
+            cmd.arg("-u").arg(&phone).arg("daemon").arg("--socket").arg(&socket);
+            
+            let mut child = cmd.spawn()?;
+            let status = child.wait()?;
+            println!("signal-cli exited with status: {}", status);
         },
         cli::Command::Send { recipient, group, message, socket } => {
             let client = if socket.starts_with("tcp://") {

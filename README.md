@@ -45,6 +45,8 @@ log_level = "info"
 # The socket path must match the one used by signal-cli
 socket = "/tmp/signal-cli.sock"
 # Or for TCP: socket = "tcp://127.0.0.1:7583"
+# The phone number of your bot
+phone = "+1234567890"
 
 [plugins]
 directory = "./plugins"
@@ -89,12 +91,14 @@ Run the bot:
 cargo run -- run --config bot.toml -v
 ```
 
-The bot will now listen for incoming messages starting with `!ping` and automatically respond.
+> **Auto-Registration:** If your bot's phone number isn't registered with Signal yet, running the bot will automatically pause and guide you through an interactive registration wizard in the terminal, including handling CAPTCHAs and SMS verification codes.
 
 ## CLI Usage
 
 The `signal-bot` binary provides several utilities:
 
+- **Start signal-cli daemon**:
+  `signal-bot daemon --config path/to/bot.toml` (Spawns `signal-cli` directly based on config)
 - **Run the bot engine**:
   `signal-bot run --config path/to/bot.toml`
 - **Send a one-off message**:

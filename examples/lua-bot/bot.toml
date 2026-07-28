@@ -5,6 +5,7 @@ log_level = "info"
 
 [account]
 socket = "/tmp/signal-cli.sock"
+phone = "+1234567890"
 
 [plugins]
 directory = "./examples/lua-bot/plugins"

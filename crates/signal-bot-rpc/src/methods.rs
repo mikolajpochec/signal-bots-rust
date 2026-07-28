@@ -69,4 +69,32 @@ impl SignalCliClient {
         
         Err(RpcError::InvalidResponse("getUser didn't return a valid string".to_string()))
     }
+    
+    /// Register a new Signal account
+    pub async fn register(&self, account: &str, captcha: Option<&str>, voice: bool) -> Result<(), RpcError> {
+        let mut params = json!({
+            "account": account,
+            "voice": voice,
+        });
+        if let Some(c) = captcha {
+            params.as_object_mut().unwrap().insert("captcha".to_string(), json!(c));
+        }
+        
+        self.call("register", params).await?;
+        Ok(())
+    }
+
+    /// Verify a newly registered Signal account
+    pub async fn verify(&self, account: &str, code: &str, pin: Option<&str>) -> Result<(), RpcError> {
+        let mut params = json!({
+            "account": account,
+            "verificationCode": code,
+        });
+        if let Some(p) = pin {
+            params.as_object_mut().unwrap().insert("pin".to_string(), json!(p));
+        }
+        
+        self.call("verify", params).await?;
+        Ok(())
+    }
 }

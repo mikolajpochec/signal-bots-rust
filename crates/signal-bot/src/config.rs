@@ -26,6 +26,8 @@ pub struct BotSection {
 pub struct AccountSection {
     /// Path to signal-cli socket (Unix path or tcp://host:port)
     pub socket: String,
+    /// Phone number of the bot account (e.g. +1234567890)
+    pub phone: String,
 }
 
 #[derive(Debug, Deserialize)]

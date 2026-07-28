@@ -21,6 +21,13 @@ pub enum Command {
         config: PathBuf,
     },
     
+    /// Start the signal-cli daemon using settings from config
+    Daemon {
+        /// Path to bot.toml configuration file
+        #[arg(short, long, default_value = "./bot.toml")]
+        config: PathBuf,
+    },
+    
     /// Send a one-off message
     Send {
         /// signal-cli daemon socket path or TCP address
