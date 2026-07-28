@@ -124,7 +124,9 @@ The `ctx` object passed to your event hooks provides various fields and methods 
 - **`ctx:reply(text)`**: Sends a standard text reply back to the user or group.
 - **`ctx:reply_get_timestamp(text)`**: Sends a reply and returns the sent message's timestamp (useful for reacting to your own messages).
 - **`ctx:react_to(target_timestamp, emoji)`**: Sends an emoji reaction to a specific message timestamp.
-- **`ctx:broadcast(text)`**: Sends a message to *all* configured `groups` (useful for `on_spawn`/`on_death` announcements).
+- **`ctx:send_message(recipient, text)`**: Sends a one-off text message to a specific phone number or UUID.
+- **`ctx:send_group_message(group_id, text)`**: Sends a one-off text message to a specific group ID.
+- **`ctx:broadcast(text)`**: Sends a message to *all* configured `groups` and `admins` (useful for `on_spawn`/`on_death` announcements).
 - **`ctx:schedule_reply(delay_in_seconds, text)`**: Schedules a delayed message. Generates a disk-backed JSON file, meaning the reminder persists even if the bot is restarted! Returns a unique 6-character ID.
 - **`ctx:list_reminders()`**: Returns a table of strings formatted as `id|timestamp|text` containing pending reminders for the current context.
 - **`ctx:cancel_reminder(id)`**: Cancels a pending reminder by its ID. Returns `true` on success.
@@ -139,7 +141,7 @@ The `ctx` object passed to your event hooks provides various fields and methods 
 
 The bot comes packaged with a few default plugins demonstrating the power of the API:
 
-- **`lifecycle.lua`**: Uses `on_spawn` and `on_death` to broadcast system boot and shutdown metrics to all allowed groups.
+- **`lifecycle.lua`**: Uses `on_spawn` and `on_death` to broadcast system boot and shutdown metrics. Users can opt-in to receive these notifications in their chat by using the `!verbose on|off` command, which persists the chat ID using `ctx:write_file`.
 - **`poll.lua`**: Listens for `!poll` to create an interactive, multi-option poll. Uses `ctx:reply_get_timestamp()` to immediately attach interactive voting emojis (`ctx:react_to()`). It tracks votes via `on_reaction`.
 - **`remind.lua`**: Allows users to set flexible persistent reminders (`!remind 5m Pizza time!`). Implements `ctx:schedule_reply()` and supports aliases (`!reminders`) and deletions (`!reminders rm <id>`).
 - **`pin.lua`**: Simple file-backed storage (`ctx:append_file()`) to pin messages (`!pin`). Supports listing and removal (`!pins rm 1`).

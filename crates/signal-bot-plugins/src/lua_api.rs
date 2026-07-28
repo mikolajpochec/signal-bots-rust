@@ -336,5 +336,14 @@ impl LuaUserData for PluginContext {
             });
             Ok(())
         });
+
+        // ctx:send_group_message(group_id, text) — send a message to a specific group
+        methods.add_method("send_group_message", |_, this, (group_id, text): (String, String)| {
+            let client = this.client.clone();
+            tokio::spawn(async move {
+                let _ = client.send_group_message(&group_id, &text, &[]).await;
+            });
+            Ok(())
+        });
     }
 }
