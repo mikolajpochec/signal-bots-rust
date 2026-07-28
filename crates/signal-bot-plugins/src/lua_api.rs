@@ -146,6 +146,23 @@ impl LuaUserData for PluginContext {
             Ok(())
         });
 
+        // ctx:edit_message(target_timestamp, new_text) — edit a previously sent message
+        methods.add_method("edit_message", |_, this, (target_timestamp, new_text): (u64, String)| {
+            debug!(target_timestamp, "Lua plugin Edit Message");
+            let client = this.client.clone();
+            let recipient = if !this.is_group { this.sender_number.clone().or_else(|| Some(this.sender_uuid.clone())) } else { None };
+            let group_id = if this.is_group { this.group_id.clone() } else { None };
+            
+            let handle = tokio::runtime::Handle::current();
+            handle.block_on(async move {
+                client
+                    .edit_message(recipient.as_deref(), group_id.as_deref(), &new_text, target_timestamp)
+                    .await
+                    .map_err(|e| mlua::Error::external(e))
+            })?;
+            Ok(())
+        });
+
         // ctx:http_get(url) — make a blocking HTTP GET request
         methods.add_method("http_get", |_, _, url: String| {
             debug!(url = %url, "Lua plugin HTTP GET");
@@ -166,21 +183,26 @@ impl LuaUserData for PluginContext {
         // ctx:append_file(filename, text) — append text to a file in default-plugins/data
         methods.add_method("append_file", |_, _, (filename, text): (String, String)| {
             use std::io::Write;
-            // Prevent path traversal
             if filename.contains('/') || filename.contains('\\') || filename.contains("..") {
                 return Err(mlua::Error::external("Invalid filename"));
             }
             let data_dir = std::path::Path::new("default-plugins").join("data");
             std::fs::create_dir_all(&data_dir).map_err(|e| mlua::Error::external(e))?;
             let path = data_dir.join(filename);
-            
-            let mut file = std::fs::OpenOptions::new()
-                .create(true)
-                .append(true)
-                .open(path)
-                .map_err(|e| mlua::Error::external(e))?;
-                
-            writeln!(file, "{}", text).map_err(|e| mlua::Error::external(e))?;
+            let mut file = std::fs::OpenOptions::new().create(true).append(true).open(path).map_err(|e| mlua::Error::external(e))?;
+            file.write_all(text.as_bytes()).map_err(|e| mlua::Error::external(e))?;
+            Ok(())
+        });
+
+        // ctx:write_file(filename, text) — overwrite a file in default-plugins/data
+        methods.add_method("write_file", |_, _, (filename, text): (String, String)| {
+            if filename.contains('/') || filename.contains('\\') || filename.contains("..") {
+                return Err(mlua::Error::external("Invalid filename"));
+            }
+            let data_dir = std::path::Path::new("default-plugins").join("data");
+            std::fs::create_dir_all(&data_dir).map_err(|e| mlua::Error::external(e))?;
+            let path = data_dir.join(filename);
+            std::fs::write(path, text).map_err(|e| mlua::Error::external(e))?;
             Ok(())
         });
 

@@ -28,6 +28,24 @@ impl SignalCliClient {
         let result = self.call("send", params).await?;
         serde_json::from_value(result).map_err(Into::into)
     }
+
+    /// Edit a previously sent message
+    pub async fn edit_message(&self, recipient: Option<&str>, group_id: Option<&str>, message: &str, edit_timestamp: u64) -> Result<SendResult, RpcError> {
+        let mut params = json!({
+            "message": message,
+            "editTimestamp": edit_timestamp,
+        });
+        if let Some(r) = recipient {
+            params.as_object_mut().unwrap().insert("recipient".to_string(), json!([r]));
+        } else if let Some(g) = group_id {
+            params.as_object_mut().unwrap().insert("groupId".to_string(), json!(g));
+        } else {
+            return Err(RpcError::InvalidResponse("Missing recipient or group_id for edit_message".to_string()));
+        }
+        
+        let result = self.call("send", params).await?;
+        serde_json::from_value(result).map_err(Into::into)
+    }
     
     /// Send a reaction to a message
     pub async fn send_reaction(&self, recipient: &str, emoji: &str, target_author: &str, target_timestamp: u64) -> Result<(), RpcError> {

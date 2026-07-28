@@ -1,86 +1,126 @@
-description = "Create a poll. Format: /poll Question | Option 1 | Option 2"
+description = "Create a poll. Format: /poll Question | Option 1 | 👍=Option 2"
+
+function trim(s)
+    return s:match("^%s*(.-)%s*$")
+end
 
 function on_command(ctx)
     if not ctx.args or #ctx.args == 0 then
-        ctx:reply("Error: Please provide a question and at least one option. Format: /poll Question | Option 1 | Option 2")
+        ctx:reply("Error: Please provide a question and at least one option. Format: /poll Question | Option 1 | 👍=Option 2")
         return
     end
 
     local text = table.concat(ctx.args, " ")
-    
     local parts = {}
     for part in string.gmatch(text, "([^|]+)") do
-        local trimmed = string.match(part, "^%s*(.-)%s*$")
+        local trimmed = trim(part)
         if trimmed ~= "" then
             table.insert(parts, trimmed)
         end
     end
     
     if #parts < 2 then
-        ctx:reply("Error: Please provide a question and at least one option. Format: /poll Question | Option 1 | Option 2")
+        ctx:reply("Error: Please provide a question and at least one option.")
         return
     end
     
     local question = parts[1]
-    
-    local emojis = {"1️⃣", "2️⃣", "3️⃣", "4️⃣", "5️⃣", "6️⃣", "7️⃣", "8️⃣", "9️⃣"}
+    local default_emojis = {"1️⃣", "2️⃣", "3️⃣", "4️⃣", "5️⃣", "6️⃣", "7️⃣", "8️⃣", "9️⃣", "🔟"}
     
     local options = {}
+    local default_idx = 1
+    
     for i = 2, #parts do
-        if i - 1 <= #emojis then
-            table.insert(options, parts[i])
+        local opt = parts[i]
+        local emoji, opt_text = string.match(opt, "^([^=]+)=(.+)$")
+        if emoji and opt_text then
+            table.insert(options, {emoji = trim(emoji), text = trim(opt_text), count = 0})
+        else
+            if default_idx <= #default_emojis then
+                table.insert(options, {emoji = default_emojis[default_idx], text = opt, count = 0})
+                default_idx = default_idx + 1
+            else
+                table.insert(options, {emoji = "❓", text = opt, count = 0})
+            end
         end
     end
     
     local message_parts = {question, ""}
     for i, opt in ipairs(options) do
-        table.insert(message_parts, emojis[i] .. " " .. opt)
+        table.insert(message_parts, opt.emoji .. " " .. opt.text .. " (0)")
     end
     
     local message = table.concat(message_parts, "\n")
-    
     local timestamp = ctx:reply_get_timestamp(message)
     
     if timestamp then
-        ctx:append_file("polls.txt", tostring(timestamp) .. ":" .. question .. "\n")
-        for i = 1, #options do
-            ctx:react_to(timestamp, emojis[i])
+        -- Save state to file
+        local lines = {question}
+        for i, opt in ipairs(options) do
+            table.insert(lines, opt.emoji .. "|" .. tostring(opt.count) .. "|" .. opt.text)
+        end
+        ctx:write_file("poll_" .. tostring(timestamp) .. ".txt", table.concat(lines, "\n"))
+        
+        -- Add reactions
+        for i, opt in ipairs(options) do
+            ctx:react_to(timestamp, opt.emoji)
         end
     end
 end
 
 function on_reaction(ctx)
     if not ctx.reaction_target_timestamp then return end
+    local ts_str = tostring(ctx.reaction_target_timestamp)
+    local filename = "poll_" .. ts_str .. ".txt"
     
-    local target_ts = tostring(ctx.reaction_target_timestamp)
+    -- Heuristic: Ignore reactions that happen within 5 seconds of the poll creation
+    if not ctx.reaction_is_remove and (ctx.timestamp - ctx.reaction_target_timestamp < 5000) then
+        return
+    end
     
-    local polls_content = ctx:read_file("polls.txt")
-    if not polls_content or polls_content == "" then return end
+    local content = ctx:read_file(filename)
+    if not content or content == "" then return end
     
-    local is_poll = false
-    local poll_question = ""
+    local lines = {}
+    for line in string.gmatch(content, "[^\r\n]+") do
+        table.insert(lines, line)
+    end
     
-    for line in string.gmatch(polls_content, "[^\r\n]+") do
-        local ts, q = string.match(line, "^(%d+):(.*)$")
-        if ts == target_ts then
-            is_poll = true
-            poll_question = q
-            break
+    if #lines < 2 then return end
+    
+    local question = lines[1]
+    local options = {}
+    local changed = false
+    
+    for i = 2, #lines do
+        local e, c, t = string.match(lines[i], "^([^|]+)|(%d+)|(.*)$")
+        if e and c and t then
+            local count = tonumber(c)
+            if e == ctx.reaction_emoji then
+                if ctx.reaction_is_remove then
+                    count = math.max(0, count - 1)
+                else
+                    count = count + 1
+                end
+                changed = true
+            end
+            table.insert(options, {emoji = e, count = count, text = t})
         end
     end
     
-    if is_poll then
-        -- Heuristic: Ignore reactions that happen within 5 seconds of the poll creation (these are the bot's own buttons)
-        if not ctx.reaction_is_remove and (ctx.timestamp - ctx.reaction_target_timestamp < 5000) then
-            return
-        end
-
-        local user = ctx.sender_name or ctx.sender_number or "Someone"
-        local action = "voted for"
-        if ctx.reaction_is_remove then
-            action = "withdrew their vote of"
+    if changed then
+        -- Save new state
+        local new_lines = {question}
+        local message_parts = {question, ""}
+        for i, opt in ipairs(options) do
+            table.insert(new_lines, opt.emoji .. "|" .. tostring(opt.count) .. "|" .. opt.text)
+            table.insert(message_parts, opt.emoji .. " " .. opt.text .. " (" .. tostring(opt.count) .. ")")
         end
         
-        ctx:reply(user .. " " .. action .. " " .. ctx.reaction_emoji .. " on poll: " .. poll_question)
+        ctx:write_file(filename, table.concat(new_lines, "\n"))
+        
+        -- Update original message
+        local new_message = table.concat(message_parts, "\n")
+        ctx:edit_message(ctx.reaction_target_timestamp, new_message)
     end
 end
