@@ -41,6 +41,27 @@ impl Engine {
 
         if let Some(pm) = &self.plugin_manager {
             pm.load_persisted_reminders(self.client.clone());
+            
+            // Broadcast on_spawn event
+            let sys_ctx = signal_bot_plugins::lua_api::PluginContext {
+                client: self.client.clone(),
+                trigger: String::new(),
+                sender_uuid: String::new(),
+                sender_number: None,
+                sender_name: None,
+                group_id: None,
+                text: String::new(),
+                timestamp: 0,
+                is_group: false,
+                args: vec![],
+                bot_uptime: 0,
+                allowed_groups: self.allowed_groups.clone(),
+                reaction_emoji: None,
+                reaction_target_author: None,
+                reaction_target_timestamp: None,
+                reaction_is_remove: None,
+            };
+            pm.broadcast_lifecycle("on_spawn", sys_ctx).await;
         }
 
         // Subscribe to receive messages from the daemon over JSON-RPC
@@ -54,6 +75,27 @@ impl Engine {
             tokio::select! {
                 _ = signal::ctrl_c() => {
                     info!("Received Ctrl-C, shutting down.");
+                    if let Some(pm) = &self.plugin_manager {
+                        let sys_ctx = signal_bot_plugins::lua_api::PluginContext {
+                            client: self.client.clone(),
+                            trigger: String::new(),
+                            sender_uuid: String::new(),
+                            sender_number: None,
+                            sender_name: None,
+                            group_id: None,
+                            text: String::new(),
+                            timestamp: 0,
+                            is_group: false,
+                            args: vec![],
+                            bot_uptime: self.start_time.elapsed().as_secs(),
+                            allowed_groups: self.allowed_groups.clone(),
+                            reaction_emoji: None,
+                            reaction_target_author: None,
+                            reaction_target_timestamp: None,
+                            reaction_is_remove: None,
+                        };
+                        pm.broadcast_lifecycle("on_death", sys_ctx).await;
+                    }
                     break;
                 }
                 msg_opt = messages.next() => {
@@ -127,6 +169,7 @@ impl Engine {
                                                             is_group: ctx.is_group,
                                                             args,
                                                             bot_uptime: self.start_time.elapsed().as_secs(),
+                                                            allowed_groups: self.allowed_groups.clone(),
                                                             reaction_emoji: None,
                                                             reaction_target_author: None,
                                                             reaction_target_timestamp: None,
@@ -156,6 +199,7 @@ impl Engine {
                                             is_group,
                                             args: vec![],
                                             bot_uptime: self.start_time.elapsed().as_secs(),
+                                            allowed_groups: self.allowed_groups.clone(),
                                             reaction_emoji: Some(reaction.emoji.clone()),
                                             reaction_target_author: reaction.target_author.clone(),
                                             reaction_target_timestamp: reaction.target_sent_timestamp,

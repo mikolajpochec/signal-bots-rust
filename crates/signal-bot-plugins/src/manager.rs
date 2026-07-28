@@ -225,6 +225,40 @@ impl PluginManager {
         }
     }
 
+    /// Broadcast a lifecycle event (e.g. "on_spawn", "on_death") to all loaded plugins.
+    pub async fn broadcast_lifecycle(&self, event: &str, plugin_ctx: PluginContext) {
+        let mut tasks = Vec::new();
+        let mut unique_sources = std::collections::HashSet::new();
+        for info in self.plugins.values() {
+            unique_sources.insert((info.trigger.clone(), info.source.clone()));
+        }
+
+        for (trigger, source) in unique_sources {
+            let ctx = plugin_ctx.clone();
+            let event_name = event.to_string();
+
+            tasks.push(tokio::task::spawn_blocking(move || {
+                let lua = Lua::new();
+                if let Err(_) = lua.load(&source).exec() {
+                    return;
+                }
+                
+                if let Ok(handler) = lua.globals().get::<LuaFunction>(event_name.as_str()) {
+                    if let Ok(_) = lua.globals().set("ctx", ctx) {
+                        if let Ok(ctx_val) = lua.globals().get::<LuaValue>("ctx") {
+                            if let Err(e) = handler.call::<()>(ctx_val) {
+                                tracing::warn!("Plugin {} failed {}: {}", trigger, event_name, e);
+                            }
+                        }
+                    }
+                }
+            }));
+        }
+        for task in tasks {
+            let _ = task.await;
+        }
+    }
+
     /// Returns an iterator over all loaded plugin triggers and descriptions.
     pub fn list(&self) -> impl Iterator<Item = (&str, &str)> {
         self.plugins

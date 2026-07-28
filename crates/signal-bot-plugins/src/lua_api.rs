@@ -19,6 +19,7 @@ pub struct PluginContext {
     pub args: Vec<String>,
     /// Bot's uptime in seconds
     pub bot_uptime: u64,
+    pub allowed_groups: Vec<String>,
     // --- Reaction fields ---
     pub reaction_emoji: Option<String>,
     pub reaction_target_author: Option<String>,
@@ -306,6 +307,20 @@ impl LuaUserData for PluginContext {
             } else {
                 Ok(false)
             }
+        });
+
+        // ctx:broadcast(text) — send a message to all allowed groups
+        methods.add_method("broadcast", |_, this, text: String| {
+            debug!(groups = ?this.allowed_groups, "Lua plugin broadcasting message");
+            let client = this.client.clone();
+            let groups = this.allowed_groups.clone();
+            
+            tokio::spawn(async move {
+                for gid in groups {
+                    let _ = client.send_group_message(&gid, &text, &[]).await;
+                }
+            });
+            Ok(())
         });
     }
 }
