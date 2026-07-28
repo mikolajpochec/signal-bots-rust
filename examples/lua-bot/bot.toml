@@ -4,7 +4,7 @@ prefix = "!"
 log_level = "info"
 
 [account]
-socket = "/tmp/signal-cli.sock"
+# The bot will auto-generate a Unix socket in /tmp based on the phone number
 phone = "+1234567890"
 
 [plugins]
