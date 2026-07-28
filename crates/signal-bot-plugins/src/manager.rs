@@ -259,11 +259,16 @@ impl PluginManager {
         }
     }
 
-    /// Returns an iterator over all loaded plugin triggers and descriptions.
-    pub fn list(&self) -> impl Iterator<Item = (&str, &str)> {
-        self.plugins
-            .values()
-            .map(|info| (info.trigger.as_str(), info.description.as_str()))
+    /// Returns a deduplicated list of all loaded plugin triggers and descriptions.
+    pub fn list(&self) -> Vec<(&str, &str)> {
+        let mut seen = std::collections::HashSet::new();
+        let mut results = Vec::new();
+        for info in self.plugins.values() {
+            if seen.insert(info.trigger.as_str()) {
+                results.push((info.trigger.as_str(), info.description.as_str()));
+            }
+        }
+        results
     }
 
     /// Check if a trigger matches a loaded plugin.
