@@ -7,7 +7,7 @@ prefix = "/"
 phone = "+1234567890"
 
 [plugins]
-directory = "./examples/lua-bot/plugins"
+directory = "../../default-plugins"
 
 [[commands]]
 trigger = "ping"
