@@ -37,6 +37,11 @@ impl Engine {
     pub async fn run(&self) -> Result<(), BotError> {
         info!("Starting bot engine...");
 
+        // Subscribe to receive messages from the daemon over JSON-RPC
+        if let Err(e) = self.client.call("subscribeReceive", serde_json::json!({})).await {
+            warn!("Failed to subscribe to receive (might already be subscribed by on-start): {}", e);
+        }
+
         let mut messages = self.client.messages();
 
         loop {

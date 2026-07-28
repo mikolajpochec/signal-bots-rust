@@ -143,8 +143,7 @@ async fn main() -> anyhow::Result<()> {
             let mut router = signal_bot_core::commands::CommandRouter::new(&config_data.bot.prefix);
             
             for cmd in config_data.commands {
-                // Assuming a method like register_static or similar exists, or a simple add_command
-                router.register_static(&cmd.trigger, &cmd.response, &cmd.description);
+                router.register_static(&cmd.trigger, &cmd.description, &cmd.response);
             }
 
             // Load plugins if configured
