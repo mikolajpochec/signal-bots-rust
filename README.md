@@ -1,106 +1,24 @@
 # bots-signal
 
-A (mostly) vibe-coded modular, high-performance Signal Messenger bot framework written in Rust.
+A modular, extensible Signal messenger bot framework written in Rust.
 
 This framework allows you to easily build bots that read and respond to messages in Signal groups and direct messages. It uses [`signal-cli`](https://github.com/AsamK/signal-cli) as its backend, communicating asynchronously over JSON-RPC.
 
-## Architecture
+## Documentation
 
-To ensure stability and keep the project lightweight, `bots-signal` acts as an RPC client to a running `signal-cli` daemon.
+The full documentation for architecture, configuration (`bot.toml`), and the Lua Plugin API can be found here: 
 
-- **signal-bot**: The CLI application that parses the `bot.toml` configuration and runs the engine.
-- **signal-bot-core**: The central bot engine, handling rate limiting, context injection, and command routing.
-- **signal-bot-rpc**: An async JSON-RPC client for `signal-cli`, handling both Unix domain sockets and TCP connections.
-- **signal-bot-plugins**: A built-in Lua 5.4 engine using `mlua` that loads `.lua` scripts dynamically as bot commands without recompiling the Rust core.
-
-## Prerequisites
-
-1. **Rust**: You need the Rust toolchain installed (1.75+).
-2. **signal-cli**: You must have `signal-cli` installed and registered with a Signal account.
-   - [signal-cli Installation Guide](https://github.com/AsamK/signal-cli#installation)
-   - You must link or register a device first before the bot can use it.
+👉 **[docs/DOCUMENTATION.md](docs/DOCUMENTATION.md)**
 
 ## Quickstart
 
-### 1. Start the Bot
-
-The bot will automatically spawn `signal-cli` in JSON-RPC daemon mode for you in the background when you start it. You just need to run:
-
-```bash
-cargo run -- run --config bot.toml
-```
-
-### 2. Configure the Bot
-
-Create a `bot.toml` configuration file. See `examples/echo-bot/bot.toml` for an example.
-
-```toml
-[bot]
-name = "EchoBot"
-prefix = "!"
-profile_picture = "/path/to/avatar.jpg"
-
-[account]
-# The bot will auto-generate a Unix socket in /tmp based on the phone number
-# Or you can explicitly provide: socket = "/tmp/signal-cli.sock"
-# The phone number of your bot
-phone = "+1234567890"
-
-[plugins]
-directory = "./plugins"
-
-[[commands]]
-trigger = "ping"
-response = "pong"
-description = "Check if the bot is alive"
-```
-
-### 3. Write a Lua Plugin (Optional)
-
-Create a `./plugins/dice.lua` file. The filename becomes the command trigger (e.g. `!dice`).
-
-```lua
-description = "Roll a dice (e.g. !dice 6)"
-
-function on_command(ctx)
-    local sides = tonumber(ctx.args[1]) or 6
-    if sides < 1 then sides = 6 end
-    local result = math.random(1, sides)
-    ctx:reply("🎲 You rolled a " .. tostring(result) .. " (d" .. tostring(sides) .. ")")
-end
-```
-
-Available context methods in Lua:
-- `ctx:reply(text)` — send a message to the same conversation
-- `ctx:react(emoji)` — react to the triggering message
-- Context fields: `ctx.sender_uuid`, `ctx.sender_name`, `ctx.group_id`, `ctx.text`, `ctx.args`
-
-### 4. Build and Run
-
-Compile the project:
-
-```bash
-cargo build --release
-```
-
-Run the bot:
-
-```bash
-cargo run -- run --config bot.toml -v
-```
-
-> **Auto-Registration:** If your bot's phone number isn't registered with Signal yet, running the bot will automatically pause and guide you through an interactive registration wizard in the terminal, including handling CAPTCHAs and SMS verification codes.
-
-## CLI Usage
-
-The `signal-bot` binary provides several utilities:
-
-- **Run the bot engine (and automatically spawn the daemon)**:
-  `signal-bot run --config path/to/bot.toml`
-- **Send a one-off message** (requires bot to be running):
-  `signal-bot send --config path/to/bot.toml --recipient +1234567890 --message "Hello from CLI"`
-- **List available groups** (requires bot to be running):
-  `signal-bot groups --config path/to/bot.toml list`
+1. **Prerequisites**: You need the Rust toolchain installed (1.75+) and a registered Signal account.
+2. **Configure**: Create a `bot.toml` configuration file (see the documentation for details).
+3. **Run**: 
+   ```bash
+   cargo run -- run --config bot.toml
+   ```
+   > **Note**: The bot will automatically spawn the `signal-cli` daemon in the background for you.
 
 ## License
 
