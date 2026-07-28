@@ -185,14 +185,14 @@ async fn main() -> anyhow::Result<()> {
                 if needs_update {
                     tracing::info!("Updating bot profile...");
                     let mut params = serde_json::Map::new();
-                    params.insert("given-name".to_string(), serde_json::json!(config_data.bot.name));
+                    params.insert("givenName".to_string(), serde_json::json!(config_data.bot.name));
                     
                     if let Some(ref avatar) = config_data.bot.profile_picture {
                         let avatar_path = std::fs::canonicalize(avatar)
                             .unwrap_or_else(|_| std::path::PathBuf::from(avatar));
                         params.insert("avatar".to_string(), serde_json::json!(avatar_path.to_string_lossy().to_string()));
                     } else {
-                        params.insert("remove-avatar".to_string(), serde_json::json!(true));
+                        params.insert("removeAvatar".to_string(), serde_json::json!(true));
                     }
                     
                     if let Err(e) = client.call("updateProfile", serde_json::Value::Object(params)).await {
