@@ -1,0 +1,15 @@
+[bot]
+name = "LuaBot"
+prefix = "!"
+log_level = "info"
+
+[account]
+socket = "/tmp/signal-cli.sock"
+
+[plugins]
+directory = "./examples/lua-bot/plugins"
+
+[[commands]]
+trigger = "ping"
+response = "🏓 Pong!"
+description = "Check if the bot is alive"

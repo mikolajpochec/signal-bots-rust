@@ -12,6 +12,7 @@ path = "src/main.rs"
 [dependencies]
 signal-bot-core = { path = "../signal-bot-core" }
 signal-bot-rpc = { path = "../signal-bot-rpc" }
+signal-bot-plugins = { path = "../signal-bot-plugins" }
 tokio = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }

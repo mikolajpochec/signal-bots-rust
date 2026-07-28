@@ -10,6 +10,7 @@ pub struct BotConfig {
     pub commands: Vec<CommandConfig>,
     pub webhooks: Option<WebhooksConfig>,
     pub rate_limit: Option<RateLimitConfig>,
+    pub plugins: Option<PluginsConfig>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -53,6 +54,12 @@ pub struct RateLimitConfig {
     pub messages_per_minute: u32,
     #[serde(default = "default_cooldown_seconds")]
     pub cooldown_seconds: u64,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct PluginsConfig {
+    /// Path to the directory containing .lua plugin files
+    pub directory: String,
 }
 
 fn default_prefix() -> String { "!".into() }

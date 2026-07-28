@@ -7,6 +7,7 @@ description = "Core bot engine for signal-bot"
 
 [dependencies]
 signal-bot-rpc = { path = "../signal-bot-rpc" }
+signal-bot-plugins = { path = "../signal-bot-plugins" }
 tokio = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }

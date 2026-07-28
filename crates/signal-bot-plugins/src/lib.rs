@@ -1,8 +1,11 @@
 //! Signal Bot Plugin System
 //!
-//! This crate will provide Lua-based plugin support in Phase 2.
-//! For now, it's a placeholder to satisfy the workspace.
+//! Provides Lua-based scripting support for signal-bot.
+//! Plugins are `.lua` files loaded from a directory.
 
-pub fn version() -> &'static str {
-    env!("CARGO_PKG_VERSION")
-}
+pub mod error;
+pub mod manager;
+pub mod lua_api;
+
+pub use error::PluginError;
+pub use manager::PluginManager;

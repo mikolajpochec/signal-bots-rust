@@ -54,32 +54,44 @@ impl CommandRouter {
         );
     }
 
-    /// Try to route a message to a command. Returns None if the message doesn't match any command.
-    pub async fn route(&self, ctx: MessageContext) -> Option<Result<(), BotError>> {
+    /// Try to route a message to a command.
+    /// Returns `(Option<Result<(), BotError>>, Option<(MessageContext, Vec<String>)>)`.
+    /// - If a command matched: `(Some(result), None)`
+    /// - If no command matched: `(None, Some((ctx, args)))` — ctx is returned for plugin fallback
+    /// - If the message doesn't start with the prefix: `(None, Some((ctx, vec![])))` — ctx is returned unmodified
+    pub async fn route(&self, ctx: MessageContext) -> (Option<Result<(), BotError>>, Option<(MessageContext, Vec<String>)>) {
         if !ctx.text.starts_with(&self.prefix) {
-            return None;
+            return (None, Some((ctx, vec![])));
         }
 
         let without_prefix = ctx.text[self.prefix.len()..].trim_start();
         if without_prefix.is_empty() {
-            return None;
+            return (None, Some((ctx, vec![])));
         }
 
         let mut parts = without_prefix.split_whitespace();
-        let trigger = parts.next()?;
+        let trigger = match parts.next() {
+            Some(t) => t.to_string(),
+            None => return (None, Some((ctx, vec![]))),
+        };
         let args: Vec<String> = parts.map(|s| s.to_string()).collect();
 
         if trigger == "help" {
             let help_text = self.help_text();
-            let fut = async move { ctx.reply(&help_text).await };
-            return Some(fut.await);
+            let result = ctx.reply(&help_text).await;
+            return (Some(result), None);
         }
 
-        if let Some(command) = self.commands.get(trigger) {
-            let fut = (command.handler)(ctx, args);
-            Some(fut.await)
+        if let Some(command) = self.commands.get(&trigger) {
+            let result = (command.handler)(ctx, args).await;
+            (Some(result), None)
         } else {
-            Some(Err(BotError::CommandNotFound(trigger.to_string())))
+            // No built-in command — return ctx + parsed trigger/args for plugin fallback
+            (None, Some((ctx, {
+                let mut v = vec![trigger];
+                v.extend(args);
+                v
+            })))
         }
     }
 

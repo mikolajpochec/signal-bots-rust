@@ -1,12 +1,12 @@
 # bots-signal
 
-A modular, high-performance Signal Messenger bot framework written in Rust.
+A vibe-coded modular, high-performance Signal Messenger bot framework written in Rust.
 
 This framework allows you to easily build bots that read and respond to messages in Signal groups and direct messages. It uses [`signal-cli`](https://github.com/AsamK/signal-cli) as its backend, communicating asynchronously over JSON-RPC.
 
 ## Architecture
 
-To ensure stability and keep the project lightweight, `bots-signal` acts as an RPC client to a running `signal-cli` daemon. 
+To ensure stability and keep the project lightweight, `bots-signal` acts as an RPC client to a running `signal-cli` daemon.
 
 - **signal-bot**: The CLI application that parses the `bot.toml` configuration and runs the engine.
 - **signal-bot-core**: The central bot engine, handling rate limiting, context injection, and command routing.
@@ -72,11 +72,11 @@ The bot will now listen for incoming messages starting with `!ping` and automati
 
 The `signal-bot` binary provides several utilities:
 
-- **Run the bot engine**: 
+- **Run the bot engine**:
   `signal-bot run --config path/to/bot.toml`
-- **Send a one-off message**: 
+- **Send a one-off message**:
   `signal-bot send --socket /tmp/signal-cli.sock --recipient +1234567890 --message "Hello from CLI"`
-- **List available groups**: 
+- **List available groups**:
   `signal-bot groups --socket /tmp/signal-cli.sock list`
 
 ## License

@@ -4,6 +4,7 @@ use crate::error::BotError;
 use crate::rate_limit::RateLimiter;
 use futures::StreamExt;
 use signal_bot_rpc::SignalCliClient;
+use signal_bot_plugins::PluginManager;
 use tokio::signal;
 use tracing::{error, info, warn};
 
@@ -12,6 +13,7 @@ pub struct Engine {
     router: CommandRouter,
     rate_limiter: Option<RateLimiter>,
     allowed_groups: Vec<String>,
+    plugin_manager: Option<PluginManager>,
 }
 
 impl Engine {
@@ -20,12 +22,14 @@ impl Engine {
         router: CommandRouter,
         rate_limiter: Option<RateLimiter>,
         allowed_groups: Vec<String>,
+        plugin_manager: Option<PluginManager>,
     ) -> Self {
         Self {
             client,
             router,
             rate_limiter,
             allowed_groups,
+            plugin_manager,
         }
     }
 
@@ -84,9 +88,39 @@ impl Engine {
                                     is_group,
                                 };
 
-                                if let Some(res) = self.router.route(ctx).await {
-                                    if let Err(e) = res {
+                                let (cmd_result, fallback) = self.router.route(ctx).await;
+                                match cmd_result {
+                                    Some(Ok(())) => {}
+                                    Some(Err(e)) => {
                                         error!("Error executing command: {}", e);
+                                    }
+                                    None => {
+                                        // No built-in command matched — try plugins
+                                        if let Some((ctx, args_with_trigger)) = fallback {
+                                            if let Some(pm) = &self.plugin_manager {
+                                                // args_with_trigger[0] is the trigger, rest are args
+                                                if !args_with_trigger.is_empty() {
+                                                    let trigger = &args_with_trigger[0];
+                                                    let args = args_with_trigger[1..].to_vec();
+                                                    if pm.has_plugin(trigger) {
+                                                        let plugin_ctx = signal_bot_plugins::lua_api::PluginContext {
+                                                            client: self.client.clone(),
+                                                            sender_uuid: ctx.sender_uuid,
+                                                            sender_number: ctx.sender_number,
+                                                            sender_name: ctx.sender_name,
+                                                            group_id: ctx.group_id,
+                                                            text: ctx.text,
+                                                            timestamp: ctx.timestamp,
+                                                            is_group: ctx.is_group,
+                                                            args,
+                                                        };
+                                                        if let Some(Err(e)) = pm.execute(trigger, plugin_ctx).await {
+                                                            error!("Plugin error: {}", e);
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
                                     }
                                 }
                             }

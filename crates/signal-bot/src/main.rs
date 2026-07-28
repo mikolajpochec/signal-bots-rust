@@ -35,7 +35,26 @@ async fn main() -> anyhow::Result<()> {
                 router.register_static(&cmd.trigger, &cmd.response, &cmd.description);
             }
 
-            let mut engine = signal_bot_core::engine::Engine::new(client, router, None, vec![]);
+            // Load plugins if configured
+            let plugin_manager = if let Some(plugins_cfg) = &config_data.plugins {
+                let mut pm = signal_bot_plugins::PluginManager::new(&plugins_cfg.directory);
+                match pm.load_all() {
+                    Ok(count) => {
+                        tracing::info!("Loaded {} Lua plugin(s)", count);
+                        Some(pm)
+                    }
+                    Err(e) => {
+                        tracing::warn!("Failed to load plugins: {}", e);
+                        None
+                    }
+                }
+            } else {
+                None
+            };
+
+            let engine = signal_bot_core::engine::Engine::new(
+                client, router, None, vec![], plugin_manager,
+            );
             engine.run().await?;
         },
         cli::Command::Send { recipient, group, message, socket } => {
