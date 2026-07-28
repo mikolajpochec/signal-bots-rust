@@ -141,7 +141,11 @@ impl LuaUserData for PluginContext {
             debug!(url = %url, "Lua plugin HTTP GET");
             let handle = tokio::runtime::Handle::current();
             let text = handle.block_on(async move {
-                reqwest::get(&url).await
+                let client = reqwest::Client::builder()
+                    .user_agent("SignalBot/1.0 (https://github.com/example/signal-bots)")
+                    .build()
+                    .map_err(|e| mlua::Error::external(e))?;
+                client.get(&url).send().await
                     .map_err(|e| mlua::Error::external(e))?
                     .text().await
                     .map_err(|e| mlua::Error::external(e))
