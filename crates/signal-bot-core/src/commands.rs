@@ -19,6 +19,7 @@ pub struct Command {
 pub struct CommandRouter {
     prefix: String,
     commands: HashMap<String, Command>,
+    external_helps: Vec<(String, String)>,
 }
 
 impl CommandRouter {
@@ -26,6 +27,7 @@ impl CommandRouter {
         Self {
             prefix: prefix.to_string(),
             commands: HashMap::new(),
+            external_helps: Vec::new(),
         }
     }
 
@@ -103,13 +105,25 @@ impl CommandRouter {
         }
     }
 
+    /// Add an external command (like a plugin) to the help text
+    pub fn add_external_help(&mut self, trigger: &str, description: &str) {
+        self.external_helps.push((trigger.to_string(), description.to_string()));
+    }
+
     /// Generate a help text listing all commands
     pub fn help_text(&self) -> String {
         let mut help = String::from("Available commands:\n");
-        let mut commands: Vec<_> = self.commands.values().collect();
-        commands.sort_by_key(|c| &c.trigger);
-        for cmd in commands {
-            help.push_str(&format!("{}{}: {}\n", self.prefix, cmd.trigger, cmd.description));
+        let mut commands: Vec<_> = self.commands.values()
+            .map(|c| (&c.trigger, &c.description))
+            .collect();
+        
+        for (trigger, desc) in &self.external_helps {
+            commands.push((trigger, desc));
+        }
+        
+        commands.sort_by_key(|c| c.0);
+        for (trigger, desc) in commands {
+            help.push_str(&format!("{}{}: {}\n", self.prefix, trigger, desc));
         }
         help.trim().to_string()
     }
