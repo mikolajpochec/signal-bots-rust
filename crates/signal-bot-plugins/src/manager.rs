@@ -8,13 +8,25 @@ use crate::error::PluginError;
 use crate::lua_api::PluginContext;
 
 /// Metadata about a loaded plugin.
+#[derive(Clone)]
 pub struct PluginInfo {
     /// The command trigger (derived from filename, e.g. "dice" from "dice.lua")
     pub trigger: String,
     /// Human-readable description (from plugin's `description` global, or empty)
     pub description: String,
+    /// Alternate triggers for this plugin
+    pub aliases: Vec<String>,
     /// The Lua source code (kept for reload)
     source: String,
+}
+
+#[derive(serde::Serialize, serde::Deserialize, Debug, Clone)]
+pub struct ScheduledReminder {
+    pub target_time: u64,
+    pub is_group: bool,
+    pub group_id: Option<String>,
+    pub sender_uuid: String,
+    pub text: String,
 }
 
 /// Manages loading and executing Lua plugins.
@@ -66,7 +78,11 @@ impl PluginManager {
             match self.load_plugin(&path, &trigger) {
                 Ok(info) => {
                     info!(trigger = %info.trigger, desc = %info.description, "Loaded plugin");
-                    self.plugins.insert(trigger, info);
+                    let aliases = info.aliases.clone();
+                    self.plugins.insert(trigger, info.clone());
+                    for alias in aliases {
+                        self.plugins.insert(alias, info.clone());
+                    }
                     count += 1;
                 }
                 Err(e) => {
@@ -101,9 +117,20 @@ impl PluginManager {
             .get::<String>("description")
             .unwrap_or_else(|_| format!("Lua plugin: {}", trigger));
 
+        // Read optional aliases
+        let mut aliases = Vec::new();
+        if let Ok(aliases_tbl) = globals.get::<mlua::Table>("aliases") {
+            for pair in aliases_tbl.pairs::<i32, String>() {
+                if let Ok((_, alias)) = pair {
+                    aliases.push(alias);
+                }
+            }
+        }
+
         Ok(PluginInfo {
             trigger: trigger.to_string(),
             description,
+            aliases,
             source,
         })
     }
@@ -213,5 +240,55 @@ impl PluginManager {
     /// Get the plugin directory path.
     pub fn plugin_dir(&self) -> &Path {
         &self.plugin_dir
+    }
+
+    /// Load persisted reminders from disk and schedule them
+    pub fn load_persisted_reminders(&self, client: signal_bot_rpc::SignalCliClient) {
+        let reminders_dir = self.plugin_dir.join("data").join("reminders");
+        if !reminders_dir.exists() {
+            return;
+        }
+
+        let now = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_secs();
+        let mut loaded = 0;
+
+        if let Ok(entries) = std::fs::read_dir(&reminders_dir) {
+            for entry in entries.filter_map(Result::ok) {
+                let path = entry.path();
+                if path.extension().map(|s| s == "json").unwrap_or(false) {
+                    if let Ok(content) = std::fs::read_to_string(&path) {
+                        if let Ok(reminder) = serde_json::from_str::<ScheduledReminder>(&content) {
+                            let client_clone = client.clone();
+                            let path_clone = path.clone();
+                            
+                            let delay = reminder.target_time.saturating_sub(now);
+                            tokio::spawn(async move {
+                                if delay > 0 {
+                                    tokio::time::sleep(std::time::Duration::from_secs(delay)).await;
+                                }
+                                
+                                if path_clone.exists() {
+                                    if reminder.is_group {
+                                        if let Some(gid) = &reminder.group_id {
+                                            let _ = client_clone.send_group_message(gid, &reminder.text, &[]).await;
+                                        }
+                                    } else {
+                                        let _ = client_clone.send_message(&reminder.sender_uuid, &reminder.text, &[]).await;
+                                    }
+                                    
+                                    let _ = std::fs::remove_file(path_clone);
+                                }
+                            });
+                            loaded += 1;
+                        } else {
+                            warn!("Failed to parse reminder file: {}", path.display());
+                        }
+                    }
+                }
+            }
+        }
+        if loaded > 0 {
+            info!("Loaded {} persistent reminder(s)", loaded);
+        }
     }
 }

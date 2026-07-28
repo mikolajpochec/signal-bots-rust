@@ -7,6 +7,7 @@ use tracing::debug;
 #[derive(Clone)]
 pub struct PluginContext {
     pub client: SignalCliClient,
+    pub trigger: String,
     pub sender_uuid: String,
     pub sender_number: Option<String>,
     pub sender_name: Option<String>,
@@ -27,6 +28,7 @@ pub struct PluginContext {
 
 impl LuaUserData for PluginContext {
     fn add_fields<F: LuaUserDataFields<Self>>(fields: &mut F) {
+        fields.add_field_method_get("trigger", |_, this| Ok(this.trigger.clone()));
         fields.add_field_method_get("sender_uuid", |_, this| Ok(this.sender_uuid.clone()));
         fields.add_field_method_get("sender_number", |_, this| Ok(this.sender_number.clone()));
         fields.add_field_method_get("sender_name", |_, this| Ok(this.sender_name.clone()));
@@ -227,17 +229,83 @@ impl LuaUserData for PluginContext {
             let group_id = this.group_id.clone();
             let sender_uuid = this.sender_uuid.clone();
 
+            let target_time = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_secs() + delay;
+            let reminder = crate::manager::ScheduledReminder {
+                target_time,
+                is_group,
+                group_id: group_id.clone(),
+                sender_uuid: sender_uuid.clone(),
+                text: text.clone(),
+            };
+
+            let uuid = uuid::Uuid::new_v4().to_string();
+            let short_uuid = uuid.chars().take(6).collect::<String>();
+            let reminders_dir = std::path::Path::new("default-plugins").join("data").join("reminders");
+            let _ = std::fs::create_dir_all(&reminders_dir);
+            let path = reminders_dir.join(format!("{}.json", short_uuid));
+
+            if let Ok(json) = serde_json::to_string(&reminder) {
+                let _ = std::fs::write(&path, json);
+            }
+
             tokio::spawn(async move {
                 tokio::time::sleep(std::time::Duration::from_secs(delay)).await;
-                if is_group {
-                    if let Some(gid) = &group_id {
-                        let _ = client.send_group_message(gid, &text, &[]).await;
+                if path.exists() {
+                    if is_group {
+                        if let Some(gid) = &group_id {
+                            let _ = client.send_group_message(gid, &text, &[]).await;
+                        }
+                    } else {
+                        let _ = client.send_message(&sender_uuid, &text, &[]).await;
                     }
-                } else {
-                    let _ = client.send_message(&sender_uuid, &text, &[]).await;
+                    let _ = std::fs::remove_file(path);
                 }
             });
-            Ok(())
+            Ok(short_uuid)
+        });
+
+        // ctx:list_reminders() — list all scheduled reminders for this context (sender/group)
+        methods.add_method("list_reminders", |_, this, ()| {
+            let mut results = Vec::new();
+            let reminders_dir = std::path::Path::new("default-plugins").join("data").join("reminders");
+            if let Ok(entries) = std::fs::read_dir(&reminders_dir) {
+                for entry in entries.filter_map(Result::ok) {
+                    let path = entry.path();
+                    if path.extension().map(|s| s == "json").unwrap_or(false) {
+                        if let Ok(content) = std::fs::read_to_string(&path) {
+                            if let Ok(reminder) = serde_json::from_str::<crate::manager::ScheduledReminder>(&content) {
+                                // Filter by current context
+                                let is_match = if this.is_group {
+                                    reminder.is_group && reminder.group_id == this.group_id
+                                } else {
+                                    !reminder.is_group && reminder.sender_uuid == this.sender_uuid
+                                };
+                                
+                                if is_match {
+                                    if let Some(id) = path.file_stem().and_then(|s| s.to_str()) {
+                                        results.push(format!("{}|{}|{}", id, reminder.target_time, reminder.text));
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            Ok(results)
+        });
+
+        // ctx:cancel_reminder(id) — cancel a reminder by its ID
+        methods.add_method("cancel_reminder", |_, _, id: String| {
+            if id.contains('/') || id.contains('\\') || id.contains("..") {
+                return Err(mlua::Error::external("Invalid ID"));
+            }
+            let path = std::path::Path::new("default-plugins").join("data").join("reminders").join(format!("{}.json", id));
+            if path.exists() {
+                let _ = std::fs::remove_file(path);
+                Ok(true)
+            } else {
+                Ok(false)
+            }
         });
     }
 }

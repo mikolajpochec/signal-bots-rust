@@ -59,6 +59,12 @@ function on_command(ctx)
         return
     end
 
+    local page_type = get_json_string(response, "type")
+    if page_type == "disambiguation" then
+        ctx:reply("'" .. table.concat(ctx.args, " ") .. "' is a disambiguation page. Please be more specific!")
+        return
+    end
+
     local extract = get_json_string(response, "extract")
     
     if extract and extract ~= "" then

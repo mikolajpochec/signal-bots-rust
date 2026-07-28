@@ -39,6 +39,10 @@ impl Engine {
     pub async fn run(&self) -> Result<(), BotError> {
         info!("Starting bot engine...");
 
+        if let Some(pm) = &self.plugin_manager {
+            pm.load_persisted_reminders(self.client.clone());
+        }
+
         // Subscribe to receive messages from the daemon over JSON-RPC
         if let Err(e) = self.client.call("subscribeReceive", serde_json::json!({})).await {
             warn!("Failed to subscribe to receive (might already be subscribed by on-start): {}", e);
@@ -113,6 +117,7 @@ impl Engine {
                                                     if pm.has_plugin(trigger) {
                                                         let plugin_ctx = signal_bot_plugins::lua_api::PluginContext {
                                                             client: self.client.clone(),
+                                                            trigger: trigger.to_string(),
                                                             sender_uuid: ctx.sender_uuid,
                                                             sender_number: ctx.sender_number,
                                                             sender_name: ctx.sender_name,
@@ -141,6 +146,7 @@ impl Engine {
                                     if let Some(pm) = &self.plugin_manager {
                                         let plugin_ctx = signal_bot_plugins::lua_api::PluginContext {
                                             client: self.client.clone(),
+                                            trigger: String::new(),
                                             sender_uuid: sender_uuid.clone(),
                                             sender_number: envelope.source.clone(),
                                             sender_name: envelope.source_name.clone(),
