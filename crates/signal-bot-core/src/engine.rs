@@ -14,6 +14,7 @@ pub struct Engine {
     rate_limiter: Option<RateLimiter>,
     allowed_groups: Vec<String>,
     plugin_manager: Option<PluginManager>,
+    start_time: std::time::Instant,
 }
 
 impl Engine {
@@ -30,6 +31,7 @@ impl Engine {
             rate_limiter,
             allowed_groups,
             plugin_manager,
+            start_time: std::time::Instant::now(),
         }
     }
 
@@ -118,6 +120,7 @@ impl Engine {
                                                             timestamp: ctx.timestamp,
                                                             is_group: ctx.is_group,
                                                             args,
+                                                            bot_uptime: self.start_time.elapsed().as_secs(),
                                                         };
                                                         if let Some(Err(e)) = pm.execute(trigger, plugin_ctx).await {
                                                             error!("Plugin error: {}", e);

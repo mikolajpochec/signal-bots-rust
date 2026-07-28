@@ -15,6 +15,8 @@ pub struct PluginContext {
     pub is_group: bool,
     /// Arguments (the text after the command trigger, split by whitespace)
     pub args: Vec<String>,
+    /// Bot's uptime in seconds
+    pub bot_uptime: u64,
 }
 
 impl LuaUserData for PluginContext {
@@ -26,6 +28,7 @@ impl LuaUserData for PluginContext {
         fields.add_field_method_get("text", |_, this| Ok(this.text.clone()));
         fields.add_field_method_get("timestamp", |_, this| Ok(this.timestamp));
         fields.add_field_method_get("is_group", |_, this| Ok(this.is_group));
+        fields.add_field_method_get("bot_uptime", |_, this| Ok(this.bot_uptime));
         fields.add_field_method_get("args", |lua, this| {
             let table = lua.create_table()?;
             for (i, arg) in this.args.iter().enumerate() {
