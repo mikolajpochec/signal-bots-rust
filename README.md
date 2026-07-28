@@ -22,12 +22,12 @@ To ensure stability and keep the project lightweight, `bots-signal` acts as an R
 
 ## Quickstart
 
-### 1. Start `signal-cli` in Daemon Mode
+### 1. Start the Bot
 
-The bot requires `signal-cli` to be running in JSON-RPC daemon mode. You can easily start it using the built-in bot command (after configuring your `bot.toml` in step 2):
+The bot will automatically spawn `signal-cli` in JSON-RPC daemon mode for you in the background when you start it. You just need to run:
 
 ```bash
-cargo run -- daemon --config bot.toml
+cargo run -- run --config bot.toml
 ```
 
 ### 2. Configure the Bot
@@ -41,9 +41,8 @@ prefix = "!"
 log_level = "info"
 
 [account]
-# The socket path must match the one used by signal-cli
-socket = "/tmp/signal-cli.sock"
-# Or for TCP: socket = "tcp://127.0.0.1:7583"
+# The bot will auto-generate a Unix socket in /tmp based on the phone number
+# Or you can explicitly provide: socket = "/tmp/signal-cli.sock"
 # The phone number of your bot
 phone = "+1234567890"
 
@@ -96,9 +95,7 @@ cargo run -- run --config bot.toml -v
 
 The `signal-bot` binary provides several utilities:
 
-- **Start signal-cli daemon**:
-  `signal-bot daemon --config path/to/bot.toml` (Spawns `signal-cli` directly based on config)
-- **Run the bot engine**:
+- **Run the bot engine (and automatically spawn the daemon)**:
   `signal-bot run --config path/to/bot.toml`
 - **Send a one-off message**:
   `signal-bot send --socket /tmp/signal-cli.sock --recipient +1234567890 --message "Hello from CLI"`

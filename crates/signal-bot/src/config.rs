@@ -24,10 +24,20 @@ pub struct BotSection {
 
 #[derive(Debug, Deserialize)]
 pub struct AccountSection {
-    /// Path to signal-cli socket (Unix path or tcp://host:port)
-    pub socket: String,
+    /// Path to signal-cli socket (Unix path or tcp://host:port). If omitted, generated from phone number.
+    pub socket: Option<String>,
     /// Phone number of the bot account (e.g. +1234567890)
     pub phone: String,
+}
+
+impl AccountSection {
+    pub fn effective_socket(&self) -> String {
+        self.socket.clone().unwrap_or_else(|| {
+            // Use a simple hash or just strip the '+' for a clean filename
+            let clean_phone = self.phone.replace("+", "");
+            format!("/tmp/signal-bot-{}.sock", clean_phone)
+        })
+    }
 }
 
 #[derive(Debug, Deserialize)]

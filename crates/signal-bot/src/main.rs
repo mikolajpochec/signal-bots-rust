@@ -65,15 +65,37 @@ async fn main() -> anyhow::Result<()> {
     match args.command {
         cli::Command::Run { config } => {
             let config_data = config::BotConfig::load(&config)?;
+            let effective_socket = config_data.account.effective_socket();
+            let phone = config_data.account.phone.clone();
             
-            // Note: Assuming SignalCliClient::connect handles both tcp:// and unix paths
-            // or the parallel agent implements it this way.
-            let client = if config_data.account.socket.starts_with("tcp://") {
-                signal_bot_rpc::client::SignalCliClient::connect_tcp(
-                    config_data.account.socket.strip_prefix("tcp://").unwrap()
-                ).await?
-            } else {
-                signal_bot_rpc::client::SignalCliClient::connect_unix(&config_data.account.socket).await?
+            tracing::info!("Starting signal-cli daemon for {} on {}", phone, effective_socket);
+            let mut cmd = tokio::process::Command::new("signal-cli");
+            cmd.arg("-u").arg(&phone).arg("daemon").arg("--socket").arg(&effective_socket);
+            cmd.kill_on_drop(true); // Automatically kill the daemon when the bot exits
+            
+            let _daemon_child = cmd.spawn()?;
+            
+            // Give the daemon a moment to create the socket/bind to port
+            let mut retries = 0;
+            let client = loop {
+                let res = if effective_socket.starts_with("tcp://") {
+                    signal_bot_rpc::client::SignalCliClient::connect_tcp(
+                        effective_socket.strip_prefix("tcp://").unwrap()
+                    ).await
+                } else {
+                    signal_bot_rpc::client::SignalCliClient::connect_unix(&effective_socket).await
+                };
+                
+                match res {
+                    Ok(c) => break c,
+                    Err(e) => {
+                        if retries >= 15 {
+                            anyhow::bail!("Failed to connect to signal-cli daemon: {}", e);
+                        }
+                        retries += 1;
+                        tokio::time::sleep(std::time::Duration::from_millis(500)).await;
+                    }
+                }
             };
 
             // Auto-registration check
@@ -112,19 +134,6 @@ async fn main() -> anyhow::Result<()> {
                 client, router, None, vec![], plugin_manager,
             );
             engine.run().await?;
-        },
-        cli::Command::Daemon { config } => {
-            let config_data = config::BotConfig::load(&config)?;
-            let socket = config_data.account.socket;
-            let phone = config_data.account.phone;
-            
-            println!("Starting signal-cli daemon for {} on {}", phone, socket);
-            let mut cmd = std::process::Command::new("signal-cli");
-            cmd.arg("-u").arg(&phone).arg("daemon").arg("--socket").arg(&socket);
-            
-            let mut child = cmd.spawn()?;
-            let status = child.wait()?;
-            println!("signal-cli exited with status: {}", status);
         },
         cli::Command::Send { recipient, group, message, socket } => {
             let client = if socket.starts_with("tcp://") {
