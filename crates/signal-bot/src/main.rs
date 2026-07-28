@@ -9,6 +9,14 @@ use clap::Parser;
 // signal_bot_core::engine::Engine
 // signal_bot_core::commands::{CommandRouter, Command}
 
+async fn is_account_registered(phone: &str) -> bool {
+    if let Ok(output) = tokio::process::Command::new("signal-cli").arg("listAccounts").output().await {
+        let stdout = String::from_utf8_lossy(&output.stdout);
+        stdout.contains(phone)
+    } else {
+        false
+    }
+}
 async fn interactive_registration(phone: &str) -> anyhow::Result<()> {
     use std::io::Write;
     
@@ -109,8 +117,8 @@ async fn main() -> anyhow::Result<()> {
             };
 
             // Auto-registration check
-            if let Err(e) = client.whoami().await {
-                tracing::warn!("Failed to identify account (might not be registered): {}", e);
+            if !is_account_registered(&phone).await {
+                tracing::warn!("Account {} is not registered. Starting interactive registration...", phone);
                 
                 // Kill the background daemon so we can run CLI registration commands without DB locks
                 daemon_child.kill().await.ok();
