@@ -1,4 +1,4 @@
-description = "Pin a message. Use /pin <text> to pin, or /pins to view pinned messages."
+description = "Pin a message. Use {::prefix}pin <text> to pin, or {::prefix}pins to view pinned messages."
 
 function on_command(ctx)
     if not ctx.args or #ctx.args == 0 then

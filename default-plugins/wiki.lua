@@ -1,4 +1,4 @@
-description = "Search Wikipedia. Format: /wiki <query>"
+description = "Search Wikipedia. Format: {::prefix}wiki <query>"
 
 local function urlencode(str)
     if str then
@@ -44,7 +44,7 @@ end
 
 function on_command(ctx)
     if not ctx.args or #ctx.args == 0 then
-        ctx:reply("Please provide a search term.")
+        ctx:reply("Please provide a search term. Format: {::prefix}wiki <query>")
         return
     end
 

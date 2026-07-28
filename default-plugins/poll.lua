@@ -1,4 +1,4 @@
-description = "Create a poll. Format: /poll Question | Option 1 | 👍=Option 2"
+description = "Create a poll. Format: {::prefix}poll Question | Option 1 | 👍=Option 2"
 
 function trim(s)
     return s:match("^%s*(.-)%s*$")
@@ -6,7 +6,7 @@ end
 
 function on_command(ctx)
     if not ctx.args or #ctx.args == 0 then
-        ctx:reply("Error: Please provide a question and at least one option. Format: /poll Question | Option 1 | 👍=Option 2")
+        ctx:reply("Error: Please provide a question and at least one option. Format: {::prefix}poll Question | Option 1 | 👍=Option 2")
         return
     end
 
@@ -81,6 +81,13 @@ function on_reaction(ctx)
     local content = ctx:read_file(filename)
     if not content or content == "" then return end
     
+    -- Resolve alias if the user reacted to an edited message
+    if string.sub(content, 1, 6) == "ALIAS:" then
+        filename = string.sub(content, 7)
+        content = ctx:read_file(filename)
+        if not content or content == "" then return end
+    end
+    
     local lines = {}
     for line in string.gmatch(content, "[^\r\n]+") do
         table.insert(lines, line)
@@ -121,6 +128,10 @@ function on_reaction(ctx)
         
         -- Update original message
         local new_message = table.concat(message_parts, "\n")
-        ctx:edit_message(ctx.reaction_target_timestamp, new_message)
+        local new_ts = ctx:edit_message(ctx.reaction_target_timestamp, new_message)
+        
+        if new_ts and tostring(new_ts) ~= tostring(ctx.reaction_target_timestamp) then
+            ctx:write_file("poll_" .. tostring(new_ts) .. ".txt", "ALIAS:" .. filename)
+        end
     end
 end

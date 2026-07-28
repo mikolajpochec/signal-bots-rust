@@ -1,8 +1,8 @@
-description = "Set a reminder. Format: /remind 5m Take out trash"
+description = "Set a reminder. Format: {::prefix}remind 5m Take out trash"
 
 function on_command(ctx)
     if not ctx.args or #ctx.args == 0 then
-        ctx:reply("Error: Unrecognized format or missing message.")
+        ctx:reply("Please specify a time and a message, e.g., {::prefix}remind 5m Check the oven")
         return
     end
 

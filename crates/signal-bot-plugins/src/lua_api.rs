@@ -146,7 +146,7 @@ impl LuaUserData for PluginContext {
             Ok(())
         });
 
-        // ctx:edit_message(target_timestamp, new_text) — edit a previously sent message
+        // ctx:edit_message(target_timestamp, new_text) — edit a previously sent message, returns new timestamp
         methods.add_method("edit_message", |_, this, (target_timestamp, new_text): (u64, String)| {
             debug!(target_timestamp, "Lua plugin Edit Message");
             let client = this.client.clone();
@@ -154,13 +154,13 @@ impl LuaUserData for PluginContext {
             let group_id = if this.is_group { this.group_id.clone() } else { None };
             
             let handle = tokio::runtime::Handle::current();
-            handle.block_on(async move {
+            let res = handle.block_on(async move {
                 client
                     .edit_message(recipient.as_deref(), group_id.as_deref(), &new_text, target_timestamp)
                     .await
                     .map_err(|e| mlua::Error::external(e))
             })?;
-            Ok(())
+            Ok(res.timestamp)
         });
 
         // ctx:http_get(url) — make a blocking HTTP GET request

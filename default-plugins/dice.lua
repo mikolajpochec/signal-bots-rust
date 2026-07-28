@@ -1,4 +1,4 @@
-description = "Roll a dice (e.g. !dice 6)"
+description = "Roll a dice (e.g. {::prefix}dice 6)"
 
 function on_command(ctx)
     local sides = tonumber(ctx.args[1]) or 6

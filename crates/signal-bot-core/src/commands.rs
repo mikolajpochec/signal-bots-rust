@@ -121,10 +121,13 @@ impl CommandRouter {
             commands.push((trigger, desc));
         }
         
-        commands.sort_by_key(|c| c.0);
+        commands.sort_by(|a, b| a.0.cmp(b.0));
+
         for (trigger, desc) in commands {
-            help.push_str(&format!("{}{}: {}\n", self.prefix, trigger, desc));
+            let desc_formatted = desc.replace("{::prefix}", &self.prefix);
+            help.push_str(&format!("{}{}: {}\n", self.prefix, trigger, desc_formatted));
         }
-        help.trim().to_string()
+
+        help.trim_end().to_string()
     }
 }
