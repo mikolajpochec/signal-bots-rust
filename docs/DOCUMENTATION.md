@@ -63,6 +63,26 @@ description = "A simple ping command"
 
 ---
 
+## 🚀 Running the Bot (Spawning and Dying)
+
+Once your configuration is ready, you can compile and spawn the bot using Cargo:
+
+```bash
+cargo build --release
+cargo run --release -- run --config bot.toml
+```
+
+### Spawning (`on_spawn`)
+When the engine starts, it automatically spawns the background `signal-cli` Java process, connects via Unix socket, and establishes a JSON-RPC stream. Once fully connected and listening for messages, it fires the **`on_spawn(ctx)`** event to all Lua plugins. 
+
+### Dying (`on_death`)
+To gracefully shut down the bot, send a SIGINT (press `Ctrl+C` in your terminal). 
+The bot engine intercepts this signal, pauses incoming message processing, and fires the **`on_death(ctx)`** event to all Lua plugins. It waits for the plugins to broadcast their final messages before cleanly terminating the `signal-cli` background daemon.
+
+> **Warning:** Using `SIGKILL` (`kill -9`) will bypass the shutdown sequence and prevent the `on_death` events from firing!
+
+---
+
 ## 📜 Lua Scripting Interface
 
 The bot's power lies in its dynamic Lua plugin system. Any `.lua` script placed in the `plugins.directory` is automatically loaded on startup.
