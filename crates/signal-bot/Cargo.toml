@@ -1,0 +1,24 @@
+[package]
+name = "signal-bot"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Signal Messenger bot framework CLI"
+
+[[bin]]
+name = "signal-bot"
+path = "src/main.rs"
+
+[dependencies]
+signal-bot-core = { path = "../signal-bot-core" }
+signal-bot-rpc = { path = "../signal-bot-rpc" }
+tokio = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+anyhow = { workspace = true }
+clap = { version = "4", features = ["derive"] }
+toml = "0.8"
+directories = "5"

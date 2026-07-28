@@ -1,0 +1,22 @@
+[bot]
+name = "EchoBot"
+prefix = "!"
+log_level = "info"
+
+[account]
+socket = "/tmp/signal-cli.sock"
+
+[[commands]]
+trigger = "ping"
+response = "🏓 Pong! Bot is alive."
+description = "Check if the bot is running"
+
+[[commands]]
+trigger = "help"
+response = "auto"
+description = "Show available commands"
+
+[[commands]]
+trigger = "echo"
+response = "echo"
+description = "Echo back your message"

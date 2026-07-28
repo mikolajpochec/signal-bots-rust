@@ -1,0 +1,10 @@
+[package]
+name = "signal-bot-plugins"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Plugin system for signal-bot (Phase 2)"
+
+[dependencies]
+thiserror = { workspace = true }
+tracing = { workspace = true }
