@@ -26,25 +26,31 @@ function on_command(ctx)
         end
     end
 
-    -- 3. Hours
+    -- 3. Relative time (seconds, minutes, hours, days, weeks)
     if not delay then
-        local h, rest3 = string.match(text, "^(%d+)%s*hours%s+(.+)")
-        if not h then h, rest3 = string.match(text, "^(%d+)%s*hour%s+(.+)") end
-        if not h then h, rest3 = string.match(text, "^(%d+)%s*h%s+(.+)") end
-        if h then
-            delay = tonumber(h) * 3600
-            msg = rest3
-        end
-    end
-
-    -- 4. Minutes
-    if not delay then
-        local min, rest4 = string.match(text, "^(%d+)%s*minutes%s+(.+)")
-        if not min then min, rest4 = string.match(text, "^(%d+)%s*minute%s+(.+)") end
-        if not min then min, rest4 = string.match(text, "^(%d+)%s*m%s+(.+)") end
-        if min then
-            delay = tonumber(min) * 60
-            msg = rest4
+        local amt, unit, rest3 = string.match(text, "^(%d+)%s*([a-zA-Z]+)%s*(.*)")
+        if amt and unit then
+            amt = tonumber(amt)
+            unit = string.lower(unit)
+            
+            if unit == "s" or unit == "sec" or unit == "secs" or unit == "second" or unit == "seconds" then
+                delay = amt
+            elseif unit == "m" or unit == "min" or unit == "mins" or unit == "minute" or unit == "minutes" then
+                delay = amt * 60
+            elseif unit == "h" or unit == "hr" or unit == "hrs" or unit == "hour" or unit == "hours" then
+                delay = amt * 3600
+            elseif unit == "d" or unit == "day" or unit == "days" then
+                delay = amt * 86400
+            elseif unit == "w" or unit == "week" or unit == "weeks" then
+                delay = amt * 604800
+            end
+            
+            if delay then
+                msg = rest3
+                if msg == "" then
+                    msg = "Time is up!"
+                end
+            end
         end
     end
 
