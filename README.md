@@ -1,6 +1,6 @@
 # bots-signal
 
-A vibe-coded modular, high-performance Signal Messenger bot framework written in Rust.
+A (mostly) vibe-coded modular, high-performance Signal Messenger bot framework written in Rust.
 
 This framework allows you to easily build bots that read and respond to messages in Signal groups and direct messages. It uses [`signal-cli`](https://github.com/AsamK/signal-cli) as its backend, communicating asynchronously over JSON-RPC.
 
@@ -11,7 +11,7 @@ To ensure stability and keep the project lightweight, `bots-signal` acts as an R
 - **signal-bot**: The CLI application that parses the `bot.toml` configuration and runs the engine.
 - **signal-bot-core**: The central bot engine, handling rate limiting, context injection, and command routing.
 - **signal-bot-rpc**: An async JSON-RPC client for `signal-cli`, handling both Unix domain sockets and TCP connections.
-- **signal-bot-plugins**: (Upcoming) A plugin system for loading dynamic bot behaviors.
+- **signal-bot-plugins**: A built-in Lua 5.4 engine using `mlua` that loads `.lua` scripts dynamically as bot commands without recompiling the Rust core.
 
 ## Prerequisites
 
@@ -46,13 +46,36 @@ log_level = "info"
 socket = "/tmp/signal-cli.sock"
 # Or for TCP: socket = "tcp://127.0.0.1:7583"
 
+[plugins]
+directory = "./plugins"
+
 [[commands]]
 trigger = "ping"
 response = "pong"
 description = "Check if the bot is alive"
 ```
 
-### 3. Build and Run
+### 3. Write a Lua Plugin (Optional)
+
+Create a `./plugins/dice.lua` file. The filename becomes the command trigger (e.g. `!dice`).
+
+```lua
+description = "Roll a dice (e.g. !dice 6)"
+
+function on_command(ctx)
+    local sides = tonumber(ctx.args[1]) or 6
+    if sides < 1 then sides = 6 end
+    local result = math.random(1, sides)
+    ctx:reply("🎲 You rolled a " .. tostring(result) .. " (d" .. tostring(sides) .. ")")
+end
+```
+
+Available context methods in Lua:
+- `ctx:reply(text)` — send a message to the same conversation
+- `ctx:react(emoji)` — react to the triggering message
+- Context fields: `ctx.sender_uuid`, `ctx.sender_name`, `ctx.group_id`, `ctx.text`, `ctx.args`
+
+### 4. Build and Run
 
 Compile the project:
 
