@@ -169,7 +169,10 @@ async fn main() -> anyhow::Result<()> {
             );
             engine.run().await?;
         },
-        cli::Command::Send { recipient, group, message, socket } => {
+        cli::Command::Send { config, recipient, group, message } => {
+            let config_data = config::BotConfig::load(&config)?;
+            let socket = config_data.account.effective_socket();
+            
             let client = if socket.starts_with("tcp://") {
                 signal_bot_rpc::client::SignalCliClient::connect_tcp(socket.strip_prefix("tcp://").unwrap()).await?
             } else {
@@ -185,7 +188,10 @@ async fn main() -> anyhow::Result<()> {
             }
             println!("Message sent successfully.");
         },
-        cli::Command::Groups { socket, subcommand } => {
+        cli::Command::Groups { config, subcommand } => {
+            let config_data = config::BotConfig::load(&config)?;
+            let socket = config_data.account.effective_socket();
+            
             let client = if socket.starts_with("tcp://") {
                 signal_bot_rpc::client::SignalCliClient::connect_tcp(socket.strip_prefix("tcp://").unwrap()).await?
             } else {

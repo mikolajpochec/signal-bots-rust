@@ -97,10 +97,10 @@ The `signal-bot` binary provides several utilities:
 
 - **Run the bot engine (and automatically spawn the daemon)**:
   `signal-bot run --config path/to/bot.toml`
-- **Send a one-off message**:
-  `signal-bot send --socket /tmp/signal-cli.sock --recipient +1234567890 --message "Hello from CLI"`
-- **List available groups**:
-  `signal-bot groups --socket /tmp/signal-cli.sock list`
+- **Send a one-off message** (requires bot to be running):
+  `signal-bot send --config path/to/bot.toml --recipient +1234567890 --message "Hello from CLI"`
+- **List available groups** (requires bot to be running):
+  `signal-bot groups --config path/to/bot.toml list`
 
 ## License
 

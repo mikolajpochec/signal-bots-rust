@@ -24,29 +24,25 @@ pub enum Command {
 
     /// Send a one-off message
     Send {
-        /// signal-cli daemon socket path or TCP address
-        #[arg(long, default_value = "/tmp/signal-cli.sock")]
-        socket: String,
-        
-        /// Recipient phone number or UUID (for direct messages)
-        #[arg(long, conflicts_with = "group")]
+        /// Path to bot.toml configuration file
+        #[arg(short, long, default_value = "./bot.toml")]
+        config: PathBuf,
+        /// Recipient phone number
+        #[arg(short, long)]
         recipient: Option<String>,
-        
-        /// Group ID (for group messages)
-        #[arg(long, conflicts_with = "recipient")]
+        /// Recipient group ID
+        #[arg(short, long)]
         group: Option<String>,
-        
         /// Message text
         #[arg(short, long)]
         message: String,
     },
     
-    /// Manage groups
+    /// Group management commands
     Groups {
-        /// signal-cli daemon socket path or TCP address
-        #[arg(long, default_value = "/tmp/signal-cli.sock")]
-        socket: String,
-        
+        /// Path to bot.toml configuration file
+        #[arg(short, long, default_value = "./bot.toml")]
+        config: PathBuf,
         #[command(subcommand)]
         subcommand: GroupsCommand,
     },
