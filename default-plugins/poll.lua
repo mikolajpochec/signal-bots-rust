@@ -73,19 +73,22 @@ function on_reaction(ctx)
     local ts_str = tostring(ctx.reaction_target_timestamp)
     local filename = "poll_" .. ts_str .. ".txt"
     
-    -- Heuristic: Ignore reactions that happen within 5 seconds of the poll creation
-    if not ctx.reaction_is_remove and (ctx.timestamp - ctx.reaction_target_timestamp < 5000) then
-        return
-    end
-    
     local content = ctx:read_file(filename)
     if not content or content == "" then return end
     
+    local is_alias = false
     -- Resolve alias if the user reacted to an edited message
     if string.sub(content, 1, 6) == "ALIAS:" then
+        is_alias = true
         filename = string.sub(content, 7)
         content = ctx:read_file(filename)
         if not content or content == "" then return end
+    end
+    
+    -- Heuristic: Ignore reactions that happen within 5 seconds of the poll creation (bot's own buttons).
+    -- We skip this for aliases because aliases mean the message has already been edited (poll is >5s old).
+    if not is_alias and not ctx.reaction_is_remove and (ctx.timestamp - ctx.reaction_target_timestamp < 5000) then
+        return
     end
     
     local lines = {}
