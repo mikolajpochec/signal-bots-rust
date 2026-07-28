@@ -1,4 +1,4 @@
-# bots-signal
+# signal-bots-rust
 
 A modular, extensible Signal messenger bot framework written in Rust.
 
@@ -6,7 +6,7 @@ This framework allows you to easily build bots that read and respond to messages
 
 ## Documentation
 
-The full documentation for architecture, configuration (`bot.toml`), and the Lua Plugin API can be found here: 
+The full documentation for architecture, configuration (`bot.toml`), and the Lua Plugin API can be found here:
 
 👉 **[docs/DOCUMENTATION.md](docs/DOCUMENTATION.md)**
 
@@ -14,7 +14,7 @@ The full documentation for architecture, configuration (`bot.toml`), and the Lua
 
 1. **Prerequisites**: You need the Rust toolchain installed (1.75+) and a registered Signal account.
 2. **Configure**: Create a `bot.toml` configuration file (see the documentation for details).
-3. **Run**: 
+3. **Run**:
    ```bash
    cargo run -- run --config bot.toml
    ```
