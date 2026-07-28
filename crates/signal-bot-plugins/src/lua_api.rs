@@ -17,6 +17,11 @@ pub struct PluginContext {
     pub args: Vec<String>,
     /// Bot's uptime in seconds
     pub bot_uptime: u64,
+    // --- Reaction fields ---
+    pub reaction_emoji: Option<String>,
+    pub reaction_target_author: Option<String>,
+    pub reaction_target_timestamp: Option<u64>,
+    pub reaction_is_remove: Option<bool>,
 }
 
 impl LuaUserData for PluginContext {
@@ -29,6 +34,10 @@ impl LuaUserData for PluginContext {
         fields.add_field_method_get("timestamp", |_, this| Ok(this.timestamp));
         fields.add_field_method_get("is_group", |_, this| Ok(this.is_group));
         fields.add_field_method_get("bot_uptime", |_, this| Ok(this.bot_uptime));
+        fields.add_field_method_get("reaction_emoji", |_, this| Ok(this.reaction_emoji.clone()));
+        fields.add_field_method_get("reaction_target_author", |_, this| Ok(this.reaction_target_author.clone()));
+        fields.add_field_method_get("reaction_target_timestamp", |_, this| Ok(this.reaction_target_timestamp));
+        fields.add_field_method_get("reaction_is_remove", |_, this| Ok(this.reaction_is_remove));
         fields.add_field_method_get("args", |lua, this| {
             let table = lua.create_table()?;
             for (i, arg) in this.args.iter().enumerate() {

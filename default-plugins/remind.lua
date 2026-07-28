@@ -65,5 +65,7 @@ function on_command(ctx)
     end
 
     ctx:schedule_reply(delay, "⏰ Reminder: " .. msg)
-    ctx:reply("Reminder set for " .. tostring(delay) .. " seconds from now!")
+    local target_time = os.time() + delay
+    local date_str = os.date("%Y-%m-%d %H:%M:%S", target_time)
+    ctx:reply("Reminder set for " .. date_str .. "!")
 end
