@@ -87,6 +87,12 @@ async fn main() -> anyhow::Result<()> {
             let phone = config_data.account.phone.clone();
             
             tracing::info!("Starting signal-cli daemon for {} on {}", phone, effective_socket);
+            
+            // Clean up the socket if it was left behind by a previous crash
+            if !effective_socket.starts_with("tcp://") {
+                let _ = std::fs::remove_file(&effective_socket);
+            }
+            
             let mut cmd = tokio::process::Command::new("signal-cli");
             cmd.arg("-u").arg(&phone).arg("daemon").arg("--socket").arg(&effective_socket);
             cmd.kill_on_drop(true); // Automatically kill the daemon when the bot exits

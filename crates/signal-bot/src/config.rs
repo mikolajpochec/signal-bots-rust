@@ -33,9 +33,12 @@ pub struct AccountSection {
 impl AccountSection {
     pub fn effective_socket(&self) -> String {
         self.socket.clone().unwrap_or_else(|| {
-            // Use a simple hash or just strip the '+' for a clean filename
-            let clean_phone = self.phone.replace("+", "");
-            format!("/tmp/signal-bot-{}.sock", clean_phone)
+            use std::hash::{Hash, Hasher};
+            use std::collections::hash_map::DefaultHasher;
+            let mut hasher = DefaultHasher::new();
+            self.phone.hash(&mut hasher);
+            let hash = hasher.finish();
+            format!("/tmp/signal-cli-{:x}.sock", hash)
         })
     }
 }
