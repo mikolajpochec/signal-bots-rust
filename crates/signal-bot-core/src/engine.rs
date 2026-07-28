@@ -13,6 +13,7 @@ pub struct Engine {
     router: CommandRouter,
     rate_limiter: Option<RateLimiter>,
     allowed_groups: Vec<String>,
+    admins: Vec<String>,
     plugin_manager: Option<PluginManager>,
     start_time: std::time::Instant,
 }
@@ -23,6 +24,7 @@ impl Engine {
         router: CommandRouter,
         rate_limiter: Option<RateLimiter>,
         allowed_groups: Vec<String>,
+        admins: Vec<String>,
         plugin_manager: Option<PluginManager>,
     ) -> Self {
         Self {
@@ -30,6 +32,7 @@ impl Engine {
             router,
             rate_limiter,
             allowed_groups,
+            admins,
             plugin_manager,
             start_time: std::time::Instant::now(),
         }
@@ -56,6 +59,7 @@ impl Engine {
                 args: vec![],
                 bot_uptime: 0,
                 allowed_groups: self.allowed_groups.clone(),
+                admins: self.admins.clone(),
                 reaction_emoji: None,
                 reaction_target_author: None,
                 reaction_target_timestamp: None,
@@ -89,6 +93,7 @@ impl Engine {
                             args: vec![],
                             bot_uptime: self.start_time.elapsed().as_secs(),
                             allowed_groups: self.allowed_groups.clone(),
+                            admins: self.admins.clone(),
                             reaction_emoji: None,
                             reaction_target_author: None,
                             reaction_target_timestamp: None,
@@ -170,6 +175,7 @@ impl Engine {
                                                             args,
                                                             bot_uptime: self.start_time.elapsed().as_secs(),
                                                             allowed_groups: self.allowed_groups.clone(),
+                                                            admins: self.admins.clone(),
                                                             reaction_emoji: None,
                                                             reaction_target_author: None,
                                                             reaction_target_timestamp: None,
@@ -200,6 +206,7 @@ impl Engine {
                                             args: vec![],
                                             bot_uptime: self.start_time.elapsed().as_secs(),
                                             allowed_groups: self.allowed_groups.clone(),
+                                            admins: self.admins.clone(),
                                             reaction_emoji: Some(reaction.emoji.clone()),
                                             reaction_target_author: reaction.target_author.clone(),
                                             reaction_target_timestamp: reaction.target_sent_timestamp,

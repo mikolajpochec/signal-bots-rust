@@ -20,6 +20,7 @@ pub struct PluginContext {
     /// Bot's uptime in seconds
     pub bot_uptime: u64,
     pub allowed_groups: Vec<String>,
+    pub admins: Vec<String>,
     // --- Reaction fields ---
     pub reaction_emoji: Option<String>,
     pub reaction_target_author: Option<String>,
@@ -309,16 +310,29 @@ impl LuaUserData for PluginContext {
             }
         });
 
-        // ctx:broadcast(text) — send a message to all allowed groups
+        // ctx:broadcast(text) — send a message to all allowed groups and admins
         methods.add_method("broadcast", |_, this, text: String| {
-            debug!(groups = ?this.allowed_groups, "Lua plugin broadcasting message");
+            debug!(groups = ?this.allowed_groups, admins = ?this.admins, "Lua plugin broadcasting message");
             let client = this.client.clone();
             let groups = this.allowed_groups.clone();
+            let admins = this.admins.clone();
             
             tokio::spawn(async move {
                 for gid in groups {
                     let _ = client.send_group_message(&gid, &text, &[]).await;
                 }
+                for admin in admins {
+                    let _ = client.send_message(&admin, &text, &[]).await;
+                }
+            });
+            Ok(())
+        });
+
+        // ctx:send_message(recipient, text) — send a message to a specific number/uuid
+        methods.add_method("send_message", |_, this, (recipient, text): (String, String)| {
+            let client = this.client.clone();
+            tokio::spawn(async move {
+                let _ = client.send_message(&recipient, &text, &[]).await;
             });
             Ok(())
         });

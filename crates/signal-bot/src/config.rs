@@ -19,6 +19,8 @@ pub struct BotSection {
     #[serde(default = "default_prefix")]
     pub prefix: String,
     pub profile_picture: Option<String>,
+    #[serde(default)]
+    pub admins: Vec<String>,
 }
 
 #[derive(Debug, Deserialize)]

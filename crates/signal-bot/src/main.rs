@@ -232,8 +232,15 @@ async fn main() -> anyhow::Result<()> {
                 None
             };
 
+            let allowed_groups: Vec<String> = config_data.groups.into_iter().map(|g| g.group_id).collect();
+
             let engine = signal_bot_core::engine::Engine::new(
-                client, router, None, vec![], plugin_manager,
+                client.clone(),
+                router,
+                None,
+                allowed_groups,
+                config_data.bot.admins.clone(),
+                plugin_manager,
             );
             engine.run().await?;
         },
