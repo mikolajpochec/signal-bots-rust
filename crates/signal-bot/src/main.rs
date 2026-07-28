@@ -94,7 +94,10 @@ async fn main() -> anyhow::Result<()> {
             }
             
             let mut cmd = tokio::process::Command::new("signal-cli");
-            cmd.arg("-u").arg(&phone).arg("daemon").arg("--socket").arg(&effective_socket);
+            cmd.arg("-u").arg(&phone)
+               .arg("daemon")
+               .arg("--socket").arg(&effective_socket)
+               .arg("--receive-mode").arg("on-start");
             cmd.kill_on_drop(true); // Automatically kill the daemon when the bot exits
             
             let mut daemon_child = cmd.spawn()?;
