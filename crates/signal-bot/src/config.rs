@@ -18,8 +18,7 @@ pub struct BotSection {
     pub name: String,
     #[serde(default = "default_prefix")]
     pub prefix: String,
-    #[serde(default = "default_log_level")]
-    pub log_level: String,
+    pub profile_picture: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -78,7 +77,6 @@ pub struct PluginsConfig {
 }
 
 fn default_prefix() -> String { "!".into() }
-fn default_log_level() -> String { "info".into() }
 fn default_messages_per_minute() -> u32 { 20 }
 fn default_cooldown_seconds() -> u64 { 1 }
 

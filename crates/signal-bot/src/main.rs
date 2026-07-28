@@ -155,6 +155,57 @@ async fn main() -> anyhow::Result<()> {
                 tracing::info!("Account is registered.");
             }
 
+            // Profile state struct for saving
+            #[derive(serde::Serialize, serde::Deserialize, Default, PartialEq)]
+            struct ProfileState {
+                name: String,
+                profile_picture: Option<String>,
+            }
+
+            // Sync profile
+            {
+                let config_path_obj = std::path::Path::new(&config);
+                let parent_dir = config_path_obj.parent().unwrap_or(std::path::Path::new(""));
+                let file_stem = config_path_obj.file_stem().unwrap_or_default().to_string_lossy();
+                let state_file = parent_dir.join(format!(".{}.state.json", file_stem));
+                
+                let current_state = ProfileState {
+                    name: config_data.bot.name.clone(),
+                    profile_picture: config_data.bot.profile_picture.clone(),
+                };
+                
+                let needs_update = if state_file.exists() {
+                    if let Ok(content) = std::fs::read_to_string(&state_file) {
+                        if let Ok(saved_state) = serde_json::from_str::<ProfileState>(&content) {
+                            saved_state != current_state
+                        } else { true }
+                    } else { true }
+                } else { true };
+                
+                if needs_update {
+                    tracing::info!("Updating bot profile...");
+                    let mut params = serde_json::Map::new();
+                    params.insert("name".to_string(), serde_json::json!(config_data.bot.name));
+                    
+                    if let Some(ref avatar) = config_data.bot.profile_picture {
+                        let avatar_path = std::fs::canonicalize(avatar)
+                            .unwrap_or_else(|_| std::path::PathBuf::from(avatar));
+                        params.insert("avatar".to_string(), serde_json::json!(avatar_path.to_string_lossy().to_string()));
+                    } else {
+                        params.insert("removeAvatar".to_string(), serde_json::json!(true));
+                    }
+                    
+                    if let Err(e) = client.call("updateProfile", serde_json::Value::Object(params)).await {
+                        tracing::warn!("Failed to update profile: {}", e);
+                    } else {
+                        if let Ok(state_json) = serde_json::to_string_pretty(&current_state) {
+                            let _ = std::fs::write(&state_file, state_json);
+                        }
+                        tracing::info!("Profile updated successfully.");
+                    }
+                }
+            }
+
             let mut router = signal_bot_core::commands::CommandRouter::new(&config_data.bot.prefix);
             
             for cmd in config_data.commands {

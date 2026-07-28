@@ -1,7 +1,6 @@
 [bot]
 name = "LuaBot"
-prefix = "!"
-log_level = "info"
+prefix = "/"
 
 [account]
 # The bot will auto-generate a Unix socket in /tmp based on the phone number

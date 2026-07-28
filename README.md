@@ -36,9 +36,9 @@ Create a `bot.toml` configuration file. See `examples/echo-bot/bot.toml` for an 
 
 ```toml
 [bot]
-name = "MyAwesomeBot"
+name = "EchoBot"
 prefix = "!"
-log_level = "info"
+profile_picture = "/path/to/avatar.jpg"
 
 [account]
 # The bot will auto-generate a Unix socket in /tmp based on the phone number

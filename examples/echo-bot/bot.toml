@@ -1,7 +1,6 @@
 [bot]
 name = "EchoBot"
 prefix = "!"
-log_level = "info"
 
 [account]
 # The bot will auto-generate a Unix socket in /tmp based on the phone number
