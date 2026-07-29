@@ -143,6 +143,17 @@ impl Engine {
                                         continue;
                                     }
                                 }
+                                
+                                if !text.is_empty() {
+                                    if let Ok(db) = crate::db::Db::new("chat_history.db") {
+                                        let _ = db.insert_message(
+                                            envelope.timestamp.unwrap_or(0) as i64,
+                                            group_id.as_deref(),
+                                            &sender_uuid,
+                                            &text
+                                        );
+                                    }
+                                }
 
                                 let ctx = MessageContext {
                                     client: self.client.clone(),

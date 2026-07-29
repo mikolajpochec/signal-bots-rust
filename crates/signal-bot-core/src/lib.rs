@@ -4,6 +4,7 @@ pub mod engine;
 pub mod error;
 pub mod rate_limit;
 pub mod ai;
+pub mod db;
 
 pub use commands::{Command, CommandHandler, CommandRouter};
 pub use context::MessageContext;

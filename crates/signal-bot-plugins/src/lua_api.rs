@@ -198,6 +198,49 @@ impl LuaUserData for PluginContext {
             Ok(text)
         });
 
+        methods.add_method("get_user_history", |_, this, (user_uuid, limit): (String, u32)| {
+            let conn = rusqlite::Connection::open("chat_history.db").map_err(mlua::Error::external)?;
+            let mut stmt = if this.is_group {
+                let group_id = this.group_id.clone().unwrap_or_default();
+                conn.prepare("SELECT text FROM messages WHERE group_id = ?1 AND sender_uuid = ?2 ORDER BY timestamp DESC LIMIT ?3").map_err(mlua::Error::external)?
+            } else {
+                conn.prepare("SELECT text FROM messages WHERE group_id IS NULL AND sender_uuid = ?1 ORDER BY timestamp DESC LIMIT ?2").map_err(mlua::Error::external)?
+            };
+            
+            let texts: Vec<String> = if this.is_group {
+                let group_id = this.group_id.clone().unwrap_or_default();
+                let iter = stmt.query_map(rusqlite::params![group_id, user_uuid, limit], |row| row.get(0)).map_err(mlua::Error::external)?;
+                iter.filter_map(|r| r.ok()).collect()
+            } else {
+                let iter = stmt.query_map(rusqlite::params![user_uuid, limit], |row| row.get(0)).map_err(mlua::Error::external)?;
+                iter.filter_map(|r| r.ok()).collect()
+            };
+            Ok(texts)
+        });
+
+        methods.add_method("get_chat_history", |_, this, limit: u32| {
+            let conn = rusqlite::Connection::open("chat_history.db").map_err(mlua::Error::external)?;
+            let mut stmt = if this.is_group {
+                let group_id = this.group_id.clone().unwrap_or_default();
+                conn.prepare("SELECT text FROM messages WHERE group_id = ?1 ORDER BY timestamp DESC LIMIT ?2").map_err(mlua::Error::external)?
+            } else {
+                let sender_uuid = this.sender_uuid.clone();
+                conn.prepare("SELECT text FROM messages WHERE group_id IS NULL AND sender_uuid = ?1 ORDER BY timestamp DESC LIMIT ?2").map_err(mlua::Error::external)?
+            };
+            
+            let msgs: Vec<String> = if this.is_group {
+                let group_id = this.group_id.clone().unwrap_or_default();
+                let iter = stmt.query_map(rusqlite::params![group_id, limit], |row| row.get(0)).map_err(mlua::Error::external)?;
+                iter.filter_map(|r| r.ok()).collect()
+            } else {
+                let sender_uuid = this.sender_uuid.clone();
+                let iter = stmt.query_map(rusqlite::params![sender_uuid, limit], |row| row.get(0)).map_err(mlua::Error::external)?;
+                iter.filter_map(|r| r.ok()).collect()
+            };
+            Ok(msgs)
+        });
+
+
         // ctx:append_file(filename, text) — append text to a file in default-plugins/data
         methods.add_method("append_file", |_, _, (filename, text): (String, String)| {
             use std::io::Write;
