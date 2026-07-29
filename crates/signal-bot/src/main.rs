@@ -11,13 +11,8 @@ use clap::Parser;
 
 async fn is_account_registered(phone: &str) -> bool {
     // Reading accounts.json directly avoids hanging when the daemon already holds the file lock.
-    let base_dirs = directories::ProjectDirs::from("", "", "signal-cli");
-    
-    // signal-cli usually stores data in ~/.local/share/signal-cli/data/accounts.json
-    let data_dir = match base_dirs {
-        Some(b) => b.data_dir().to_path_buf(),
-        None => std::path::PathBuf::from(std::env::var("HOME").unwrap_or_default()).join(".local/share/signal-cli/data")
-    };
+
+
     
     // On Linux it's often directly in ~/.local/share/signal-cli/data
     // but directories crate puts it in ~/.local/share/signal-cli
@@ -78,8 +73,17 @@ async fn interactive_registration(phone: &str) -> anyhow::Result<()> {
     std::io::stdin().read_line(&mut code)?;
     let code = code.trim().replace("-", ""); // Strip dashes if any
 
+    let _data_dir = match directories::BaseDirs::new() {
+        Some(base_dirs) => base_dirs.data_dir().join("signal-bot"),
+        None => std::path::PathBuf::from(".signal-bot"),
+    };
+    let tmp_dir = _data_dir.join("tmp");
+    std::fs::create_dir_all(&tmp_dir).unwrap_or_default();
+
     println!("Verifying code...");
     let verify_output = tokio::process::Command::new("signal-cli")
+        .env("TMPDIR", tmp_dir.to_str().unwrap_or("/tmp"))
+        .env("_JAVA_OPTIONS", format!("-Djava.io.tmpdir={}", tmp_dir.display()))
         .arg("-u").arg(phone).arg("verify").arg(&code).output().await?;
         
     if !verify_output.status.success() {
@@ -109,6 +113,15 @@ async fn main() -> anyhow::Result<()> {
             }
             
             let mut cmd = tokio::process::Command::new("signal-cli");
+            let _data_dir = match directories::BaseDirs::new() {
+                Some(base_dirs) => base_dirs.data_dir().join("signal-bot"),
+                None => std::path::PathBuf::from(".signal-bot"),
+            };
+            let tmp_dir = _data_dir.join("tmp");
+            std::fs::create_dir_all(&tmp_dir).unwrap_or_default();
+            
+            cmd.env("TMPDIR", tmp_dir.to_str().unwrap_or("/tmp"));
+            cmd.env("_JAVA_OPTIONS", format!("-Djava.io.tmpdir={}", tmp_dir.display()));
             cmd.arg("-u").arg(&phone)
                .arg("daemon")
                .arg("--socket").arg(&effective_socket)

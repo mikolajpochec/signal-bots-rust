@@ -8,7 +8,9 @@ pub struct BotConfig {
     pub groups: Vec<GroupConfig>,
     #[serde(default)]
     pub commands: Vec<CommandConfig>,
+    #[allow(dead_code)]
     pub webhooks: Option<WebhooksConfig>,
+    #[allow(dead_code)]
     pub rate_limit: Option<RateLimitConfig>,
     pub plugins: Option<PluginsConfig>,
 }
@@ -44,6 +46,7 @@ impl AccountSection {
     }
 }
 
+#[allow(dead_code)]
 #[derive(Debug, Deserialize)]
 pub struct GroupConfig {
     pub name: String,
@@ -58,12 +61,14 @@ pub struct CommandConfig {
     pub description: String,
 }
 
+#[allow(dead_code)]
 #[derive(Debug, Deserialize)]
 pub struct WebhooksConfig {
     pub incoming_url: Option<String>,
     pub outgoing_url: Option<String>,
 }
 
+#[allow(dead_code)]
 #[derive(Debug, Deserialize)]
 pub struct RateLimitConfig {
     #[serde(default = "default_messages_per_minute")]

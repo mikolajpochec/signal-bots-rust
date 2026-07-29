@@ -1,7 +1,16 @@
 description = "Pin a message. Use {::prefix}pin <text> to pin, or {::prefix}pins to view/remove pinned messages."
 aliases = {"pins"}
 
+local function get_filename(ctx)
+    if ctx.is_group then
+        return "pinned_" .. ctx.group_id .. ".txt"
+    else
+        return "pinned_" .. (ctx.sender_uuid or ctx.sender_number) .. ".txt"
+    end
+end
+
 function on_command(ctx)
+    local filename = get_filename(ctx)
     if ctx.trigger == "pins" then
         if ctx.args[1] == "rm" and ctx.args[2] then
             local idx = tonumber(ctx.args[2])
@@ -10,7 +19,7 @@ function on_command(ctx)
                 return
             end
             
-            local contents = ctx:read_file("pinned.txt")
+            local contents = ctx:read_file(filename)
             if not contents or contents == "" then
                 ctx:reply("No pinned messages to remove.")
                 return
@@ -27,12 +36,12 @@ function on_command(ctx)
             end
             
             table.remove(lines, idx)
-            ctx:write_file("pinned.txt", table.concat(lines, "\n") .. (table.getn(lines) > 0 and "\n" or ""))
+            ctx:write_file(filename, table.concat(lines, "\n") .. (#lines > 0 and "\n" or ""))
             ctx:reply("✅ Pin " .. idx .. " removed.")
             return
         end
 
-        local contents = ctx:read_file("pinned.txt")
+        local contents = ctx:read_file(filename)
         if not contents or contents == "" then
             ctx:reply("No pinned messages.")
         else
@@ -58,6 +67,6 @@ function on_command(ctx)
     local text = table.concat(ctx.args, " ")
     -- Remove bullet if they added one manually
     text = string.gsub(text, "^%-%s*", "")
-    ctx:append_file("pinned.txt", text .. "\n")
+    ctx:append_file(filename, text .. "\n")
     ctx:reply("✅ Pinned!")
 end
