@@ -7,6 +7,7 @@ use tracing::debug;
 #[derive(Clone)]
 pub struct PluginContext {
     pub client: SignalCliClient,
+    pub prefix: String,
     pub trigger: String,
     pub sender_uuid: String,
     pub sender_number: Option<String>,
@@ -30,6 +31,7 @@ pub struct PluginContext {
 
 impl LuaUserData for PluginContext {
     fn add_fields<F: LuaUserDataFields<Self>>(fields: &mut F) {
+        fields.add_field_method_get("prefix", |_, this| Ok(this.prefix.clone()));
         fields.add_field_method_get("trigger", |_, this| Ok(this.trigger.clone()));
         fields.add_field_method_get("sender_uuid", |_, this| Ok(this.sender_uuid.clone()));
         fields.add_field_method_get("sender_number", |_, this| Ok(this.sender_number.clone()));
@@ -55,6 +57,7 @@ impl LuaUserData for PluginContext {
     fn add_methods<M: LuaUserDataMethods<Self>>(methods: &mut M) {
         // ctx:reply(text) — send a reply to the same conversation
         methods.add_method("reply", |_, this, text: String| {
+            let text = text.replace("{::prefix}", &this.prefix);
             debug!(plugin_reply = %text, "Lua plugin sending reply");
             let client = this.client.clone();
             let is_group = this.is_group;
@@ -240,11 +243,27 @@ impl LuaUserData for PluginContext {
                 text: text.clone(),
             };
 
-            let uuid = uuid::Uuid::new_v4().to_string();
-            let short_uuid = uuid.chars().take(6).collect::<String>();
             let reminders_dir = std::path::Path::new("default-plugins").join("data").join("reminders");
             let _ = std::fs::create_dir_all(&reminders_dir);
-            let path = reminders_dir.join(format!("{}.json", short_uuid));
+            
+            // Generate a simple sequential ID (1 to infinity)
+            let mut next_id = 1;
+            if let Ok(entries) = std::fs::read_dir(&reminders_dir) {
+                for entry in entries.filter_map(Result::ok) {
+                    if let Some(name) = entry.file_name().to_str() {
+                        if name.ends_with(".json") {
+                            if let Ok(num) = name.trim_end_matches(".json").parse::<u64>() {
+                                if num >= next_id {
+                                    next_id = num + 1;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            
+            let id = next_id.to_string();
+            let path = reminders_dir.join(format!("{}.json", id));
 
             if let Ok(json) = serde_json::to_string(&reminder) {
                 let _ = std::fs::write(&path, json);
@@ -263,7 +282,7 @@ impl LuaUserData for PluginContext {
                     let _ = std::fs::remove_file(path);
                 }
             });
-            Ok(short_uuid)
+            Ok(id)
         });
 
         // ctx:list_reminders() — list all scheduled reminders for this context (sender/group)
@@ -330,18 +349,24 @@ impl LuaUserData for PluginContext {
 
         // ctx:send_message(recipient, text) — send a message to a specific number/uuid
         methods.add_method("send_message", |_, this, (recipient, text): (String, String)| {
+            let text = text.replace("{::prefix}", &this.prefix);
             let client = this.client.clone();
             tokio::spawn(async move {
-                let _ = client.send_message(&recipient, &text, &[]).await;
+                if let Err(e) = client.send_message(&recipient, &text, &[]).await {
+                    tracing::error!("Failed to send_message to {}: {}", recipient, e);
+                }
             });
             Ok(())
         });
 
         // ctx:send_group_message(group_id, text) — send a message to a specific group
         methods.add_method("send_group_message", |_, this, (group_id, text): (String, String)| {
+            let text = text.replace("{::prefix}", &this.prefix);
             let client = this.client.clone();
             tokio::spawn(async move {
-                let _ = client.send_group_message(&group_id, &text, &[]).await;
+                if let Err(e) = client.send_group_message(&group_id, &text, &[]).await {
+                    tracing::error!("Failed to send_group_message to {}: {}", group_id, e);
+                }
             });
             Ok(())
         });

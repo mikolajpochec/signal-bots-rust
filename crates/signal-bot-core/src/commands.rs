@@ -17,7 +17,7 @@ pub struct Command {
 }
 
 pub struct CommandRouter {
-    prefix: String,
+    pub prefix: String,
     commands: HashMap<String, Command>,
     pub external_helps: Vec<(String, String, Vec<(String, String)>)>,
 }

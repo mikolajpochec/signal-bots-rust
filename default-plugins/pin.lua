@@ -1,5 +1,5 @@
-description = "Pin a message. Use {::prefix}pin <text> to pin, or {::prefix}pins to view/remove pinned messages."
-aliases = { pins = "View or remove pinned messages." }
+description = "Pin a message. Use {::prefix}pin <text> to pin. Use {::prefix}pins to view pins."
+aliases = { pins = "View pinned messages.", ["pin-rm"] = "Remove a pinned message. Usage: {::prefix}pin-rm <id>" }
 
 local function get_filename(ctx)
     if ctx.is_group then
@@ -11,36 +11,40 @@ end
 
 function on_command(ctx)
     local filename = get_filename(ctx)
-    if ctx.trigger == "pins" then
-        if ctx.args[1] == "rm" and ctx.args[2] then
-            local idx = tonumber(ctx.args[2])
-            if not idx then
-                ctx:reply("Please provide a valid pin number to remove. Example: {::prefix}pins rm 1")
-                return
-            end
-            
-            local contents = ctx:read_file(filename)
-            if not contents or contents == "" then
-                ctx:reply("No pinned messages to remove.")
-                return
-            end
-            
-            local lines = {}
-            for line in string.gmatch(contents, "[^\r\n]+") do
-                table.insert(lines, line)
-            end
-            
-            if idx < 1 or idx > #lines then
-                ctx:reply("Pin number out of bounds. There are only " .. #lines .. " pins.")
-                return
-            end
-            
-            table.remove(lines, idx)
-            ctx:write_file(filename, table.concat(lines, "\n") .. (#lines > 0 and "\n" or ""))
-            ctx:reply("✅ Pin " .. idx .. " removed.")
+    if ctx.trigger == "pin-rm" then
+        if not ctx.args[1] then
+            ctx:reply("Please provide a valid pin number to remove. Example: {::prefix}pin-rm 1")
             return
         end
+        local idx = tonumber(ctx.args[1])
+        if not idx then
+            ctx:reply("Please provide a valid pin number to remove. Example: {::prefix}pin-rm 1")
+            return
+        end
+        
+        local contents = ctx:read_file(filename)
+        if not contents or contents == "" then
+            ctx:reply("No pinned messages to remove.")
+            return
+        end
+        
+        local lines = {}
+        for line in string.gmatch(contents, "[^\r\n]+") do
+            table.insert(lines, line)
+        end
+        
+        if idx < 1 or idx > #lines then
+            ctx:reply("Pin number out of bounds. There are only " .. #lines .. " pins.")
+            return
+        end
+        
+        table.remove(lines, idx)
+        ctx:write_file(filename, table.concat(lines, "\n") .. (#lines > 0 and "\n" or ""))
+        ctx:reply("✅ Pin " .. idx .. " removed.")
+        return
+    end
 
+    if ctx.trigger == "pins" then
         local contents = ctx:read_file(filename)
         if not contents or contents == "" then
             ctx:reply("No pinned messages.")

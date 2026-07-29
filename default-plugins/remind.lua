@@ -1,18 +1,25 @@
-description = "Set a reminder. Format: {::prefix}remind 5m Take out trash. Use {::prefix}reminders to view, or {::prefix}reminders rm <id> to remove."
-aliases = { reminders = "View or remove pending reminders." }
+description = "Set a reminder. Format: {::prefix}remind 5m Take out trash."
+aliases = { 
+    reminders = "View pending reminders.",
+    ["reminder-rm"] = "Remove a reminder. Usage: {::prefix}reminder-rm <id>"
+}
 
 function on_command(ctx)
-    if ctx.trigger == "reminders" then
-        if ctx.args[1] == "rm" and ctx.args[2] then
-            local success = ctx:cancel_reminder(ctx.args[2])
-            if success then
-                ctx:reply("✅ Reminder " .. ctx.args[2] .. " canceled.")
-            else
-                ctx:reply("❌ Reminder not found.")
-            end
+    if ctx.trigger == "reminder-rm" then
+        if not ctx.args[1] then
+            ctx:reply("Please specify a reminder ID to cancel. Example: {::prefix}reminder-rm 1")
             return
         end
-        
+        local success = ctx:cancel_reminder(ctx.args[1])
+        if success then
+            ctx:reply("✅ Reminder " .. ctx.args[1] .. " canceled.")
+        else
+            ctx:reply("❌ Reminder not found.")
+        end
+        return
+    end
+
+    if ctx.trigger == "reminders" then
         local reminders = ctx:list_reminders()
         if not reminders or #reminders == 0 then
             ctx:reply("No pending reminders.")

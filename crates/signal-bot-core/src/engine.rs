@@ -48,6 +48,7 @@ impl Engine {
             // Broadcast on_spawn event
             let sys_ctx = signal_bot_plugins::lua_api::PluginContext {
                 client: self.client.clone(),
+                prefix: self.router.prefix.clone(),
                 trigger: String::new(),
                 sender_uuid: String::new(),
                 sender_number: None,
@@ -82,6 +83,7 @@ impl Engine {
                     if let Some(pm) = &self.plugin_manager {
                         let sys_ctx = signal_bot_plugins::lua_api::PluginContext {
                             client: self.client.clone(),
+                            prefix: self.router.prefix.clone(),
                             trigger: String::new(),
                             sender_uuid: String::new(),
                             sender_number: None,
@@ -91,7 +93,7 @@ impl Engine {
                             timestamp: 0,
                             is_group: false,
                             args: vec![],
-                            bot_uptime: self.start_time.elapsed().as_secs(),
+                            bot_uptime: std::time::Instant::now().duration_since(self.start_time).as_secs(),
                             allowed_groups: self.allowed_groups.clone(),
                             admins: self.admins.clone(),
                             reaction_emoji: None,
@@ -159,20 +161,21 @@ impl Engine {
                                             if let Some(pm) = &self.plugin_manager {
                                                 // args_with_trigger[0] is the trigger, rest are args
                                                 if !args_with_trigger.is_empty() {
-                                                    let trigger = &args_with_trigger[0];
+                                                    let trigger_name = &args_with_trigger[0];
                                                     let args = args_with_trigger[1..].to_vec();
-                                                    if pm.has_plugin(trigger) {
+                                                    if pm.has_plugin(trigger_name) {
                                                         let plugin_ctx = signal_bot_plugins::lua_api::PluginContext {
                                                             client: self.client.clone(),
-                                                            trigger: trigger.to_string(),
-                                                            sender_uuid: ctx.sender_uuid,
-                                                            sender_number: ctx.sender_number,
-                                                            sender_name: ctx.sender_name,
-                                                            group_id: ctx.group_id,
-                                                            text: ctx.text,
+                                                            prefix: self.router.prefix.clone(),
+                                                            trigger: trigger_name.clone(),
+                                                            sender_uuid: ctx.sender_uuid.clone(),
+                                                            sender_number: ctx.sender_number.clone(),
+                                                            sender_name: ctx.sender_name.clone(),
+                                                            group_id: ctx.group_id.clone(),
+                                                            text: ctx.text.clone(),
                                                             timestamp: ctx.timestamp,
                                                             is_group: ctx.is_group,
-                                                            args,
+                                                            args: args.clone(),
                                                             bot_uptime: self.start_time.elapsed().as_secs(),
                                                             allowed_groups: self.allowed_groups.clone(),
                                                             admins: self.admins.clone(),
@@ -181,9 +184,38 @@ impl Engine {
                                                             reaction_target_timestamp: None,
                                                             reaction_is_remove: None,
                                                         };
-                                                        if let Some(Err(e)) = pm.execute(trigger, plugin_ctx).await {
+                                                        if let Some(Err(e)) = pm.execute(trigger_name, plugin_ctx).await {
                                                             error!("Plugin error: {}", e);
                                                         }
+                                                    }
+                                                }
+                                            }
+                                        } else {
+                                            // Fallback for empty trigger (if someone just typed prefix)
+                                            if let Some(pm) = &self.plugin_manager {
+                                                if pm.has_plugin("") {
+                                                    let plugin_ctx = signal_bot_plugins::lua_api::PluginContext {
+                                                        client: self.client.clone(),
+                                                        prefix: self.router.prefix.clone(),
+                                                        trigger: String::new(),
+                                                        sender_uuid: sender_uuid.clone(),
+                                                        sender_number: envelope.source.clone(),
+                                                        sender_name: envelope.source_name.clone(),
+                                                        group_id: group_id.clone(),
+                                                        text: text.clone(),
+                                                        timestamp: envelope.timestamp.unwrap_or(0),
+                                                        is_group,
+                                                        args: vec![],
+                                                        bot_uptime: self.start_time.elapsed().as_secs(),
+                                                        allowed_groups: self.allowed_groups.clone(),
+                                                        admins: self.admins.clone(),
+                                                        reaction_emoji: None,
+                                                        reaction_target_author: None,
+                                                        reaction_target_timestamp: None,
+                                                        reaction_is_remove: None,
+                                                    };
+                                                    if let Some(Err(e)) = pm.execute("", plugin_ctx).await {
+                                                        error!("Plugin error: {}", e);
                                                     }
                                                 }
                                             }
@@ -195,6 +227,7 @@ impl Engine {
                                     if let Some(pm) = &self.plugin_manager {
                                         let plugin_ctx = signal_bot_plugins::lua_api::PluginContext {
                                             client: self.client.clone(),
+                                            prefix: self.router.prefix.clone(),
                                             trigger: String::new(),
                                             sender_uuid: sender_uuid.clone(),
                                             sender_number: envelope.source.clone(),
