@@ -13,10 +13,11 @@ The full documentation for architecture, configuration (`bot.toml`), and the Lua
 ## Quickstart
 
 1. **Prerequisites**: You need the Rust toolchain installed (1.75+) and a registered Signal account.
-2. **Configure**: Create a `bot.toml` configuration file (see the documentation for details).
-3. **Run**:
+2. **Install**: Run `./install.sh` to build the framework and install the `signal-bot` binary to your `~/.local/bin` folder.
+3. **Configure**: Create a `bot.toml` configuration file (see the documentation for details).
+4. **Run**:
    ```bash
-   cargo run -- run --config bot.toml
+   signal-bot run --config bot.toml
    ```
    > **Note**: The bot will automatically spawn the `signal-cli` daemon in the background for you.
 
