@@ -16,6 +16,8 @@ pub struct PluginInfo {
     pub description: String,
     /// Alternate triggers for this plugin
     pub aliases: Vec<(String, String)>,
+    /// Whether the plugin should be hidden from help
+    pub secret: bool,
     /// The Lua source code (kept for reload)
     source: String,
 }
@@ -127,10 +129,13 @@ impl PluginManager {
             }
         }
 
+        let secret = globals.get::<bool>("secret").unwrap_or(false);
+
         Ok(PluginInfo {
             trigger: trigger.to_string(),
             description,
             aliases,
+            secret,
             source,
         })
     }
@@ -260,13 +265,13 @@ impl PluginManager {
     }
 
     /// Returns a deduplicated list of all loaded plugin triggers, descriptions, and aliases.
-    pub fn list(&self) -> Vec<(&str, &str, Vec<(&str, &str)>)> {
+    pub fn list(&self) -> Vec<(&str, &str, Vec<(&str, &str)>, bool)> {
         let mut seen = std::collections::HashSet::new();
         let mut results = Vec::new();
         for info in self.plugins.values() {
             if seen.insert(info.trigger.as_str()) {
                 let aliases: Vec<(&str, &str)> = info.aliases.iter().map(|(a, d)| (a.as_str(), d.as_str())).collect();
-                results.push((info.trigger.as_str(), info.description.as_str(), aliases));
+                results.push((info.trigger.as_str(), info.description.as_str(), aliases, info.secret));
             }
         }
         results
