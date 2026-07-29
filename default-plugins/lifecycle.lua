@@ -53,10 +53,12 @@ local function broadcast_to_subscribers(ctx, msg)
     local chats = get_subscribed_chats(ctx)
     for chat, _ in pairs(chats) do
         local is_group = chat:sub(1, 6) == "GROUP|"
-        local id = chat:sub(7)
         if is_group then
+            local id = chat:sub(7)
             ctx:send_group_message(id, msg)
         else
+            -- Must be USER|...
+            local id = chat:sub(6)
             ctx:send_message(id, msg)
         end
     end
