@@ -15,7 +15,7 @@ pub struct PluginInfo {
     /// Human-readable description (from plugin's `description` global, or empty)
     pub description: String,
     /// Alternate triggers for this plugin
-    pub aliases: Vec<String>,
+    pub aliases: Vec<(String, String)>,
     /// The Lua source code (kept for reload)
     source: String,
 }
@@ -80,7 +80,7 @@ impl PluginManager {
                     info!(trigger = %info.trigger, desc = %info.description, "Loaded plugin");
                     let aliases = info.aliases.clone();
                     self.plugins.insert(trigger, info.clone());
-                    for alias in aliases {
+                    for (alias, _) in aliases {
                         self.plugins.insert(alias, info.clone());
                     }
                     count += 1;
@@ -120,9 +120,9 @@ impl PluginManager {
         // Read optional aliases
         let mut aliases = Vec::new();
         if let Ok(aliases_tbl) = globals.get::<mlua::Table>("aliases") {
-            for pair in aliases_tbl.pairs::<i32, String>() {
-                if let Ok((_, alias)) = pair {
-                    aliases.push(alias);
+            for pair in aliases_tbl.pairs::<String, String>() {
+                if let Ok((alias, desc)) = pair {
+                    aliases.push((alias, desc));
                 }
             }
         }
@@ -260,12 +260,12 @@ impl PluginManager {
     }
 
     /// Returns a deduplicated list of all loaded plugin triggers, descriptions, and aliases.
-    pub fn list(&self) -> Vec<(&str, &str, Vec<&str>)> {
+    pub fn list(&self) -> Vec<(&str, &str, Vec<(&str, &str)>)> {
         let mut seen = std::collections::HashSet::new();
         let mut results = Vec::new();
         for info in self.plugins.values() {
             if seen.insert(info.trigger.as_str()) {
-                let aliases: Vec<&str> = info.aliases.iter().map(|s| s.as_str()).collect();
+                let aliases: Vec<(&str, &str)> = info.aliases.iter().map(|(a, d)| (a.as_str(), d.as_str())).collect();
                 results.push((info.trigger.as_str(), info.description.as_str(), aliases));
             }
         }

@@ -19,7 +19,7 @@ pub struct Command {
 pub struct CommandRouter {
     prefix: String,
     commands: HashMap<String, Command>,
-    pub external_helps: Vec<(String, String, Vec<String>)>,
+    pub external_helps: Vec<(String, String, Vec<(String, String)>)>,
 }
 
 impl CommandRouter {
@@ -101,7 +101,7 @@ impl CommandRouter {
     }
 
     /// Add an external command (like a plugin) to the help text
-    pub fn add_external_help(&mut self, trigger: &str, description: &str, aliases: Vec<String>) {
+    pub fn add_external_help(&mut self, trigger: &str, description: &str, aliases: Vec<(String, String)>) {
         self.external_helps.push((trigger.to_string(), description.to_string(), aliases));
     }
 
@@ -109,7 +109,7 @@ impl CommandRouter {
     pub fn help_text(&self) -> String {
         let mut help = String::from("Available commands:\n");
         let mut commands: Vec<_> = self.commands.values()
-            .map(|c| (&c.trigger, &c.description, Vec::<String>::new()))
+            .map(|c| (&c.trigger, &c.description, Vec::<(String, String)>::new()))
             .collect();
         
         for (trigger, desc, aliases) in &self.external_helps {
@@ -121,8 +121,9 @@ impl CommandRouter {
         for (trigger, desc, aliases) in commands {
             let desc_formatted = desc.replace("{::prefix}", &self.prefix);
             help.push_str(&format!("{}{}: {}\n", self.prefix, trigger, desc_formatted));
-            for alias in aliases {
-                help.push_str(&format!("\t{}{}: Alias for {}{}\n", self.prefix, alias, self.prefix, trigger));
+            for (alias, alias_desc) in aliases {
+                let alias_desc_formatted = alias_desc.replace("{::prefix}", &self.prefix);
+                help.push_str(&format!("\t{}{}: {}\n", self.prefix, alias, alias_desc_formatted));
             }
         }
 

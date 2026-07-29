@@ -1,5 +1,5 @@
 description = "Set a reminder. Format: {::prefix}remind 5m Take out trash. Use {::prefix}reminders to view, or {::prefix}reminders rm <id> to remove."
-aliases = {"reminders"}
+aliases = { reminders = "View or remove pending reminders." }
 
 function on_command(ctx)
     if ctx.trigger == "reminders" then

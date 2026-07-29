@@ -1,5 +1,5 @@
 description = "Pin a message. Use {::prefix}pin <text> to pin, or {::prefix}pins to view/remove pinned messages."
-aliases = {"pins"}
+aliases = { pins = "View or remove pinned messages." }
 
 local function get_filename(ctx)
     if ctx.is_group then

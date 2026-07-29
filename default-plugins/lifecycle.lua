@@ -1,5 +1,5 @@
 description = "System lifecycle plugin (not invoked by users)"
-aliases = {"verbose"}
+aliases = { verbose = "Toggle lifecycle notifications." }
 
 local function get_chat_id(ctx)
     if ctx.is_group then
