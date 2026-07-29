@@ -102,6 +102,7 @@ impl Engine {
                             reaction_is_remove: None,
                         };
                         pm.broadcast_lifecycle("on_death", sys_ctx).await;
+                        tokio::time::sleep(std::time::Duration::from_secs(2)).await;
                     }
                     break;
                 }
