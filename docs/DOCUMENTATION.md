@@ -55,6 +55,13 @@ directory = "default-plugins" # Directory containing your .lua scripts
 name = "My Friends Group"
 group_id = "group-id-base64-string=" # Group ID where the bot is allowed to respond
 
+[ai]
+enabled = true
+base_url = "https://openrouter.ai/api/v1"
+api_key = "sk-or-v1-..."
+model = "google/gemini-2.5-flash-free"
+system_prompt = "You are a helpful Signal bot."
+
 [[commands]]
 trigger = "ping"
 response = "Pong!"
@@ -134,6 +141,10 @@ The `ctx` object passed to your event hooks provides various fields and methods 
 - **`ctx:write_file(filename, text)`**: Overwrites a text file.
 - **`ctx:append_file(filename, text)`**: Appends text to a file.
 - **`ctx:http_get(url)`**: Performs a synchronous GET request and returns the response body as a string.
+- **`ctx:get_chat_history(limit)`**: Retrieves up to `limit` recent messages from the current chat (scoped to group or DM).
+- **`ctx:get_user_history(user_uuid, limit)`**: Retrieves up to `limit` recent messages from a specific user in the current chat context.
+- **`ctx:llm_generate(prompt)`**: Sends a prompt to the configured AI API and returns the generated text. (Requires `[ai]` configuration).
+- **`ctx:llm_generate_with_context(prompt, history_table)`**: Sends a prompt with an array of context strings to the AI API.
 
 ---
 
@@ -147,3 +158,4 @@ The bot comes packaged with a few default plugins demonstrating the power of the
 - **`pin.lua`**: Simple file-backed storage (`ctx:append_file()`) to pin messages (`!pin`). Supports listing and removal (`!pins rm 1`).
 - **`wiki.lua`**: Fetches Wikipedia summaries using `ctx:http_get()`. Includes logic to detect and reject disambiguation pages.
 - **`dice.lua`**: Standard RNG plugin.
+- **`bot.lua` & `roast.lua`**: Demonstrates the `ctx:llm_generate` API to chat with LLMs and seamlessly inject chat history (`ctx:get_chat_history`) into prompts.
