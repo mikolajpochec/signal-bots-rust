@@ -250,6 +250,14 @@ async fn main() -> anyhow::Result<()> {
 
             let allowed_groups: Vec<String> = config_data.groups.into_iter().map(|g| g.group_id).collect();
 
+            let ai_config = config_data.ai.map(|a| signal_bot_plugins::lua_api::AiPluginConfig {
+                enabled: a.enabled,
+                base_url: a.base_url,
+                api_key: a.api_key,
+                model: a.model,
+                system_prompt: a.system_prompt,
+            });
+
             let engine = signal_bot_core::engine::Engine::new(
                 client.clone(),
                 router,
@@ -257,6 +265,7 @@ async fn main() -> anyhow::Result<()> {
                 allowed_groups,
                 config_data.bot.admins.clone(),
                 plugin_manager,
+                ai_config,
             );
             engine.run().await?;
         },

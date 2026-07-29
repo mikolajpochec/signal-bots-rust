@@ -15,6 +15,7 @@ pub struct Engine {
     allowed_groups: Vec<String>,
     admins: Vec<String>,
     plugin_manager: Option<PluginManager>,
+    ai: Option<signal_bot_plugins::lua_api::AiPluginConfig>,
     start_time: std::time::Instant,
 }
 
@@ -26,6 +27,7 @@ impl Engine {
         allowed_groups: Vec<String>,
         admins: Vec<String>,
         plugin_manager: Option<PluginManager>,
+        ai: Option<signal_bot_plugins::lua_api::AiPluginConfig>,
     ) -> Self {
         Self {
             client,
@@ -34,6 +36,7 @@ impl Engine {
             allowed_groups,
             admins,
             plugin_manager,
+            ai,
             start_time: std::time::Instant::now(),
         }
     }
@@ -65,6 +68,7 @@ impl Engine {
                 reaction_target_author: None,
                 reaction_target_timestamp: None,
                 reaction_is_remove: None,
+                ai: self.ai.clone(),
             };
             pm.broadcast_lifecycle("on_spawn", sys_ctx).await;
         }
@@ -100,6 +104,7 @@ impl Engine {
                             reaction_target_author: None,
                             reaction_target_timestamp: None,
                             reaction_is_remove: None,
+                            ai: self.ai.clone(),
                         };
                         pm.broadcast_lifecycle("on_death", sys_ctx).await;
                         tokio::time::sleep(std::time::Duration::from_secs(2)).await;
@@ -184,6 +189,7 @@ impl Engine {
                                                             reaction_target_author: None,
                                                             reaction_target_timestamp: None,
                                                             reaction_is_remove: None,
+                                                            ai: self.ai.clone(),
                                                         };
                                                         if let Some(Err(e)) = pm.execute(trigger_name, plugin_ctx).await {
                                                             error!("Plugin error: {}", e);
@@ -214,6 +220,7 @@ impl Engine {
                                                         reaction_target_author: None,
                                                         reaction_target_timestamp: None,
                                                         reaction_is_remove: None,
+                                                        ai: self.ai.clone(),
                                                     };
                                                     if let Some(Err(e)) = pm.execute("", plugin_ctx).await {
                                                         error!("Plugin error: {}", e);
@@ -245,6 +252,7 @@ impl Engine {
                                             reaction_target_author: reaction.target_author.clone(),
                                             reaction_target_timestamp: reaction.target_sent_timestamp,
                                             reaction_is_remove: reaction.is_remove,
+                                            ai: self.ai.clone(),
                                         };
                                         pm.broadcast_reaction(plugin_ctx).await;
                                     }

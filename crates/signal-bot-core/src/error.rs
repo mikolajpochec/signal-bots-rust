@@ -12,4 +12,6 @@ pub enum BotError {
     ConfigError(String),
     #[error("Rate limited")]
     RateLimited,
+    #[error("Internal error: {0}")]
+    Internal(String),
 }

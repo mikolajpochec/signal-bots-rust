@@ -13,6 +13,7 @@ pub struct BotConfig {
     #[allow(dead_code)]
     pub rate_limit: Option<RateLimitConfig>,
     pub plugins: Option<PluginsConfig>,
+    pub ai: Option<AiConfig>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -81,6 +82,16 @@ pub struct RateLimitConfig {
 pub struct PluginsConfig {
     /// Path to the directory containing .lua plugin files
     pub directory: String,
+}
+
+#[derive(Debug, Deserialize, Clone)]
+pub struct AiConfig {
+    #[serde(default)]
+    pub enabled: bool,
+    pub base_url: String,
+    pub api_key: String,
+    pub model: String,
+    pub system_prompt: String,
 }
 
 fn default_prefix() -> String { "!".into() }

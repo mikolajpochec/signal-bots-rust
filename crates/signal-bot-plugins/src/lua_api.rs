@@ -27,6 +27,17 @@ pub struct PluginContext {
     pub reaction_target_author: Option<String>,
     pub reaction_target_timestamp: Option<u64>,
     pub reaction_is_remove: Option<bool>,
+    // --- AI fields ---
+    pub ai: Option<AiPluginConfig>,
+}
+
+#[derive(Clone, Debug)]
+pub struct AiPluginConfig {
+    pub enabled: bool,
+    pub base_url: String,
+    pub api_key: String,
+    pub model: String,
+    pub system_prompt: String,
 }
 
 impl LuaUserData for PluginContext {
@@ -369,6 +380,108 @@ impl LuaUserData for PluginContext {
                 }
             });
             Ok(())
+        });
+        // ctx:llm_generate(prompt)
+        methods.add_method("llm_generate", |_, this, prompt: String| {
+            let ai_cfg = this.ai.clone().ok_or_else(|| mlua::Error::external("AI is not configured"))?;
+            if !ai_cfg.enabled {
+                return Err(mlua::Error::external("AI is disabled"));
+            }
+
+            let handle = tokio::runtime::Handle::current();
+            let response = handle.block_on(async move {
+                let url = format!("{}/chat/completions", ai_cfg.base_url.trim_end_matches('/'));
+                let mut messages = Vec::new();
+                if !ai_cfg.system_prompt.is_empty() {
+                    messages.push(serde_json::json!({"role": "system", "content": ai_cfg.system_prompt}));
+                }
+                messages.push(serde_json::json!({"role": "user", "content": prompt}));
+
+                let body = serde_json::json!({
+                    "model": ai_cfg.model,
+                    "messages": messages
+                });
+
+                let client = reqwest::Client::new();
+                let res = client.post(&url)
+                    .bearer_auth(&ai_cfg.api_key)
+                    .json(&body)
+                    .send()
+                    .await
+                    .map_err(|e| mlua::Error::external(e))?;
+                
+                if !res.status().is_success() {
+                    let status = res.status();
+                    let text = res.text().await.unwrap_or_default();
+                    return Err(mlua::Error::external(format!("AI error {}: {}", status, text)));
+                }
+
+                let parsed: serde_json::Value = res.json().await.map_err(|e| mlua::Error::external(e))?;
+                let content = parsed.get("choices")
+                    .and_then(|c| c.as_array())
+                    .and_then(|c| c.first())
+                    .and_then(|c| c.get("message"))
+                    .and_then(|m| m.get("content"))
+                    .and_then(|c| c.as_str())
+                    .unwrap_or("")
+                    .to_string();
+
+                Ok::<_, mlua::Error>(content)
+            })?;
+            Ok(response)
+        });
+
+        // ctx:llm_generate_with_context(prompt, context_messages)
+        methods.add_method("llm_generate_with_context", |_, this, (prompt, context_messages): (String, Vec<String>)| {
+            let ai_cfg = this.ai.clone().ok_or_else(|| mlua::Error::external("AI is not configured"))?;
+            if !ai_cfg.enabled {
+                return Err(mlua::Error::external("AI is disabled"));
+            }
+
+            let handle = tokio::runtime::Handle::current();
+            let response = handle.block_on(async move {
+                let url = format!("{}/chat/completions", ai_cfg.base_url.trim_end_matches('/'));
+                let mut messages = Vec::new();
+                if !ai_cfg.system_prompt.is_empty() {
+                    messages.push(serde_json::json!({"role": "system", "content": ai_cfg.system_prompt}));
+                }
+                for msg in context_messages {
+                    messages.push(serde_json::json!({"role": "user", "content": msg}));
+                }
+                messages.push(serde_json::json!({"role": "user", "content": prompt}));
+
+                let body = serde_json::json!({
+                    "model": ai_cfg.model,
+                    "messages": messages
+                });
+
+                let client = reqwest::Client::new();
+                let res = client.post(&url)
+                    .bearer_auth(&ai_cfg.api_key)
+                    .json(&body)
+                    .send()
+                    .await
+                    .map_err(|e| mlua::Error::external(e))?;
+                
+                if !res.status().is_success() {
+                    let status = res.status();
+                    let text = res.text().await.unwrap_or_default();
+                    return Err(mlua::Error::external(format!("AI error {}: {}", status, text)));
+                }
+
+                let parsed: serde_json::Value = res.json().await.map_err(|e| mlua::Error::external(e))?;
+                let content = parsed.get("choices")
+                    .and_then(|c| c.as_array())
+                    .and_then(|c| c.first())
+                    .and_then(|c| c.get("message"))
+                    .and_then(|m| m.get("content"))
+                    .and_then(|c| c.as_str())
+                    .unwrap_or("")
+                    .to_string();
+
+                Ok::<_, mlua::Error>(content)
+            })?;
+            Ok(response)
         });
     }
 }
