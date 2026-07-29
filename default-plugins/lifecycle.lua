@@ -1,5 +1,6 @@
 description = "System lifecycle plugin (not invoked by users)"
-aliases = { verbose = "Toggle lifecycle notifications." }
+secret = true
+aliases = { verbose = "Toggle lifecycle notifications for this chat. Usage: {::prefix}verbose on|off" }
 
 local function get_chat_id(ctx)
     if ctx.is_group then
@@ -28,7 +29,7 @@ local function save_subscribed_chats(ctx, chats)
 end
 
 function on_command(ctx)
-    if ctx.trigger == "verbose" then
+    if ctx.trigger == "verbose" or ctx.trigger == "lifecycle" then
         local action = ctx.args[1]
         if action == "on" then
             local chats = get_subscribed_chats(ctx)
