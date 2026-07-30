@@ -1,4 +1,4 @@
-description = "Generate a warm welcome message for someone. Format: /welcome <name>"
+description = "Generate a warm welcome message for someone. Format: {::prefix}welcome <name>"
 group = "AI"
 
 function on_command(ctx)

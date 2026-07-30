@@ -1,4 +1,4 @@
-description = "Summarize the last 50 messages. Format: /tldr"
+description = "Summarize the last 50 messages. Format: {::prefix}tldr"
 group = "AI"
 
 function on_command(ctx)

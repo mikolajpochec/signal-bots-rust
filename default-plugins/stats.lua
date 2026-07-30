@@ -1,4 +1,4 @@
-description = "Show the top 5 most active chatters in this group. Format: /stats"
+description = "Show the top 5 most active chatters in this group. Format: {::prefix}stats"
 group = "Tools"
 
 function on_command(ctx)

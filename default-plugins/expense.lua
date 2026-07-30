@@ -1,4 +1,4 @@
-description = "Track group expenses. Format: /expense add <amount> <desc> | list | clear"
+description = "Track group expenses. Format: {::prefix}expense add <amount> <desc> | list | clear"
 group = "Tools"
 
 function on_command(ctx)

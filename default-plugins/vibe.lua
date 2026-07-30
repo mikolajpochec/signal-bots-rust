@@ -1,4 +1,4 @@
-description = "Check the vibe of the chat. Format: /vibe"
+description = "Check the vibe of the chat. Format: {::prefix}vibe"
 group = "AI"
 
 function on_command(ctx)
