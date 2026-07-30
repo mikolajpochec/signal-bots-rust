@@ -18,6 +18,8 @@ pub struct PluginInfo {
     pub aliases: Vec<(String, String)>,
     /// Whether the plugin should be hidden from help
     pub secret: bool,
+    /// The plugin group (default "General")
+    pub group: String,
     /// The Lua source code (kept for reload)
     source: String,
 }
@@ -130,12 +132,14 @@ impl PluginManager {
         }
 
         let secret = globals.get::<bool>("secret").unwrap_or(false);
+        let group = globals.get::<String>("group").unwrap_or_else(|_| "General".to_string());
 
         Ok(PluginInfo {
             trigger: trigger.to_string(),
             description,
             aliases,
             secret,
+            group,
             source,
         })
     }
@@ -265,16 +269,29 @@ impl PluginManager {
     }
 
     /// Returns a deduplicated list of all loaded plugin triggers, descriptions, and aliases.
-    pub fn list(&self) -> Vec<(&str, &str, Vec<(&str, &str)>, bool)> {
+    pub fn list(&self) -> Vec<(&str, &str, Vec<(&str, &str)>, bool, &str)> {
+        let mut list = Vec::new();
+        // Since aliases map back to the same PluginInfo, we only want to yield each plugin once.
+        // We'll iterate over values, collect their unique triggers, and then build the result.
         let mut seen = std::collections::HashSet::new();
-        let mut results = Vec::new();
         for info in self.plugins.values() {
-            if seen.insert(info.trigger.as_str()) {
-                let aliases: Vec<(&str, &str)> = info.aliases.iter().map(|(a, d)| (a.as_str(), d.as_str())).collect();
-                results.push((info.trigger.as_str(), info.description.as_str(), aliases, info.secret));
+            if seen.insert(info.trigger.clone()) {
+                let mapped_aliases: Vec<(&str, &str)> = info
+                    .aliases
+                    .iter()
+                    .map(|(a, d)| (a.as_str(), d.as_str()))
+                    .collect();
+                list.push((
+                    info.trigger.as_str(),
+                    info.description.as_str(),
+                    mapped_aliases,
+                    info.secret,
+                    info.group.as_str(),
+                ));
             }
         }
-        results
+        list.sort_by(|a, b| a.0.cmp(b.0));
+        list
     }
 
     /// Check if a trigger matches a loaded plugin.

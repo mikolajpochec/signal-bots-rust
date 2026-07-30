@@ -19,7 +19,7 @@ pub struct Command {
 pub struct CommandRouter {
     pub prefix: String,
     commands: HashMap<String, Command>,
-    pub external_helps: Vec<(String, String, Vec<(String, String)>)>,
+    pub external_helps: Vec<(String, String, Vec<(String, String)>, String)>,
 }
 
 impl CommandRouter {
@@ -100,33 +100,50 @@ impl CommandRouter {
         }
     }
 
-    /// Add an external command (like a plugin) to the help text
-    pub fn add_external_help(&mut self, trigger: &str, description: &str, aliases: Vec<(String, String)>) {
-        self.external_helps.push((trigger.to_string(), description.to_string(), aliases));
+    /// Add an external command (e.g. plugin) to the help text.
+    pub fn add_external_help(&mut self, trigger: &str, description: &str, aliases: Vec<(String, String)>, group: &str) {
+        self.external_helps.push((trigger.to_string(), description.to_string(), aliases, group.to_string()));
     }
 
     /// Generate a help text listing all commands
     pub fn help_text(&self) -> String {
         let mut help = String::from("Available commands:\n");
-        let mut commands: Vec<_> = self.commands.values()
+        
+        let mut grouped: HashMap<String, Vec<(&String, &String, Vec<(String, String)>)>> = HashMap::new();
+        
+        // Built-in commands
+        let mut core_cmds: Vec<_> = self.commands.values()
             .map(|c| (&c.trigger, &c.description, Vec::<(String, String)>::new()))
             .collect();
+        core_cmds.sort_by(|a, b| a.0.cmp(b.0));
+        grouped.insert("Core".to_string(), core_cmds);
         
-        for (trigger, desc, aliases) in &self.external_helps {
-            commands.push((trigger, desc, aliases.clone()));
+        // External plugins
+        for (trigger, desc, aliases, group) in &self.external_helps {
+            grouped.entry(group.clone()).or_default().push((trigger, desc, aliases.clone()));
         }
         
-        commands.sort_by(|a, b| a.0.cmp(b.0));
-
-        for (trigger, desc, aliases) in commands {
-            let desc_formatted = desc.replace("{::prefix}", &self.prefix);
-            help.push_str(&format!("{}{}: {}\n", self.prefix, trigger, desc_formatted));
-            for (alias, alias_desc) in aliases {
-                let alias_desc_formatted = alias_desc.replace("{::prefix}", &self.prefix);
-                help.push_str(&format!("\t{}{}: {}\n", self.prefix, alias, alias_desc_formatted));
+        let mut group_names: Vec<_> = grouped.keys().collect();
+        group_names.sort();
+        
+        for group in group_names {
+            let cmds = grouped.get(group).unwrap();
+            if cmds.is_empty() { continue; }
+            
+            help.push_str(&format!("\n### {}\n", group));
+            let mut sorted_cmds = cmds.clone();
+            sorted_cmds.sort_by(|a, b| a.0.cmp(b.0));
+            
+            for (trigger, desc, aliases) in sorted_cmds {
+                let desc_formatted = desc.replace("{::prefix}", &self.prefix);
+                help.push_str(&format!("{}{}: {}\n", self.prefix, trigger, desc_formatted));
+                for (alias, alias_desc) in aliases {
+                    let alias_desc_formatted = alias_desc.replace("{::prefix}", &self.prefix);
+                    help.push_str(&format!("\t{}{}: {}\n", self.prefix, alias, alias_desc_formatted));
+                }
             }
         }
 
-        help.trim_end().to_string()
+        help.trim().to_string()
     }
 }
