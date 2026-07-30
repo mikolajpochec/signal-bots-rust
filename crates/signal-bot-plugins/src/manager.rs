@@ -31,7 +31,7 @@ pub struct ScheduledReminder {
     pub text: String,
 }
 
-/// Manages loading and executing Lua plugins.
+#[derive(Clone)]
 pub struct PluginManager {
     /// Directory where .lua plugin files live
     plugin_dir: PathBuf,

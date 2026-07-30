@@ -203,9 +203,13 @@ impl Engine {
                                                             reaction_is_remove: None,
                                                             ai: self.ai.clone(),
                                                         };
-                                                        if let Some(Err(e)) = pm.execute(trigger_name, plugin_ctx).await {
-                                                            error!("Plugin error: {}", e);
-                                                        }
+                                                        let pm = pm.clone();
+                                                        let trigger_name = trigger_name.clone();
+                                                        tokio::spawn(async move {
+                                                            if let Some(Err(e)) = pm.execute(&trigger_name, plugin_ctx).await {
+                                                                error!("Plugin error: {}", e);
+                                                            }
+                                                        });
                                                     }
                                                 }
                                             }
@@ -234,9 +238,12 @@ impl Engine {
                                                         reaction_is_remove: None,
                                                         ai: self.ai.clone(),
                                                     };
-                                                    if let Some(Err(e)) = pm.execute("", plugin_ctx).await {
-                                                        error!("Plugin error: {}", e);
-                                                    }
+                                                    let pm = pm.clone();
+                                                    tokio::spawn(async move {
+                                                        if let Some(Err(e)) = pm.execute("", plugin_ctx).await {
+                                                            error!("Plugin error: {}", e);
+                                                        }
+                                                    });
                                                 }
                                             }
                                         }
