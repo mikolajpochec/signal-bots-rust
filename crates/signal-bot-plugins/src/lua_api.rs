@@ -202,17 +202,25 @@ impl LuaUserData for PluginContext {
             let conn = rusqlite::Connection::open("chat_history.db").map_err(mlua::Error::external)?;
             let mut stmt = if this.is_group {
                 let group_id = this.group_id.clone().unwrap_or_default();
-                conn.prepare("SELECT text FROM messages WHERE group_id = ?1 AND sender_uuid = ?2 ORDER BY timestamp DESC LIMIT ?3").map_err(mlua::Error::external)?
+                conn.prepare("SELECT sender_name, text FROM messages WHERE group_id = ?1 AND sender_uuid = ?2 ORDER BY timestamp DESC LIMIT ?3").map_err(mlua::Error::external)?
             } else {
-                conn.prepare("SELECT text FROM messages WHERE group_id IS NULL AND sender_uuid = ?1 ORDER BY timestamp DESC LIMIT ?2").map_err(mlua::Error::external)?
+                conn.prepare("SELECT sender_name, text FROM messages WHERE group_id IS NULL AND sender_uuid = ?1 ORDER BY timestamp DESC LIMIT ?2").map_err(mlua::Error::external)?
             };
             
             let texts: Vec<String> = if this.is_group {
                 let group_id = this.group_id.clone().unwrap_or_default();
-                let iter = stmt.query_map(rusqlite::params![group_id, user_uuid, limit], |row| row.get(0)).map_err(mlua::Error::external)?;
+                let iter = stmt.query_map(rusqlite::params![group_id, user_uuid, limit], |row| {
+                    let name: Option<String> = row.get(0)?;
+                    let text: String = row.get(1)?;
+                    Ok(format!("{}: {}", name.unwrap_or_else(|| "Unknown".to_string()), text))
+                }).map_err(mlua::Error::external)?;
                 iter.filter_map(|r| r.ok()).collect()
             } else {
-                let iter = stmt.query_map(rusqlite::params![user_uuid, limit], |row| row.get(0)).map_err(mlua::Error::external)?;
+                let iter = stmt.query_map(rusqlite::params![user_uuid, limit], |row| {
+                    let name: Option<String> = row.get(0)?;
+                    let text: String = row.get(1)?;
+                    Ok(format!("{}: {}", name.unwrap_or_else(|| "Unknown".to_string()), text))
+                }).map_err(mlua::Error::external)?;
                 iter.filter_map(|r| r.ok()).collect()
             };
             Ok(texts)
@@ -222,19 +230,27 @@ impl LuaUserData for PluginContext {
             let conn = rusqlite::Connection::open("chat_history.db").map_err(mlua::Error::external)?;
             let mut stmt = if this.is_group {
                 let group_id = this.group_id.clone().unwrap_or_default();
-                conn.prepare("SELECT text FROM messages WHERE group_id = ?1 ORDER BY timestamp DESC LIMIT ?2").map_err(mlua::Error::external)?
+                conn.prepare("SELECT sender_name, text FROM messages WHERE group_id = ?1 ORDER BY timestamp DESC LIMIT ?2").map_err(mlua::Error::external)?
             } else {
                 let sender_uuid = this.sender_uuid.clone();
-                conn.prepare("SELECT text FROM messages WHERE group_id IS NULL AND sender_uuid = ?1 ORDER BY timestamp DESC LIMIT ?2").map_err(mlua::Error::external)?
+                conn.prepare("SELECT sender_name, text FROM messages WHERE group_id IS NULL AND sender_uuid = ?1 ORDER BY timestamp DESC LIMIT ?2").map_err(mlua::Error::external)?
             };
             
             let msgs: Vec<String> = if this.is_group {
                 let group_id = this.group_id.clone().unwrap_or_default();
-                let iter = stmt.query_map(rusqlite::params![group_id, limit], |row| row.get(0)).map_err(mlua::Error::external)?;
+                let iter = stmt.query_map(rusqlite::params![group_id, limit], |row| {
+                    let name: Option<String> = row.get(0)?;
+                    let text: String = row.get(1)?;
+                    Ok(format!("{}: {}", name.unwrap_or_else(|| "Unknown".to_string()), text))
+                }).map_err(mlua::Error::external)?;
                 iter.filter_map(|r| r.ok()).collect()
             } else {
                 let sender_uuid = this.sender_uuid.clone();
-                let iter = stmt.query_map(rusqlite::params![sender_uuid, limit], |row| row.get(0)).map_err(mlua::Error::external)?;
+                let iter = stmt.query_map(rusqlite::params![sender_uuid, limit], |row| {
+                    let name: Option<String> = row.get(0)?;
+                    let text: String = row.get(1)?;
+                    Ok(format!("{}: {}", name.unwrap_or_else(|| "Unknown".to_string()), text))
+                }).map_err(mlua::Error::external)?;
                 iter.filter_map(|r| r.ok()).collect()
             };
             Ok(msgs)

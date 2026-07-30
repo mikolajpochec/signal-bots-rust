@@ -5,3 +5,4 @@ Cargo.lock
 .DS_Store
 *.sock
 *plugin*/data
+chat_history.db

@@ -15,6 +15,7 @@ impl Db {
                 timestamp INTEGER NOT NULL,
                 group_id TEXT,
                 sender_uuid TEXT NOT NULL,
+                sender_name TEXT,
                 text TEXT NOT NULL
             )",
             [],
@@ -28,11 +29,12 @@ impl Db {
         timestamp: i64,
         group_id: Option<&str>,
         sender_uuid: &str,
+        sender_name: Option<&str>,
         text: &str,
     ) -> Result<()> {
         self.conn.execute(
-            "INSERT INTO messages (timestamp, group_id, sender_uuid, text) VALUES (?1, ?2, ?3, ?4)",
-            params![timestamp, group_id, sender_uuid, text],
+            "INSERT INTO messages (timestamp, group_id, sender_uuid, sender_name, text) VALUES (?1, ?2, ?3, ?4, ?5)",
+            params![timestamp, group_id, sender_uuid, sender_name, text],
         )?;
         Ok(())
     }

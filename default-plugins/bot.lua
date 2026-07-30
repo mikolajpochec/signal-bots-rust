@@ -8,11 +8,17 @@ function on_command(ctx)
     
     local prompt = table.concat(ctx.args, " ")
     
-    -- Fetch the last 10 messages from the chat to give the bot context!
     local history = ctx:get_chat_history(10) or {}
+    local formatted_history = "Here is chat history:\n"
+    for i = #history, 1, -1 do
+        formatted_history = formatted_history .. history[i] .. "\n"
+    end
+    
+    local current_sender = ctx.sender_name or "Unknown"
+    local final_prompt = formatted_history .. "\nHere is current message:\n" .. current_sender .. ": " .. prompt
     
     local status, response = pcall(function() 
-        return ctx:llm_generate_with_context(prompt, history) 
+        return ctx:llm_generate(final_prompt) 
     end)
     
     if status and response and response ~= "" then

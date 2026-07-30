@@ -150,6 +150,7 @@ impl Engine {
                                             envelope.timestamp.unwrap_or(0) as i64,
                                             group_id.as_deref(),
                                             &sender_uuid,
+                                            envelope.source_name.as_deref(),
                                             &text
                                         );
                                     }

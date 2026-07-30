@@ -13,9 +13,14 @@ function on_command(ctx)
         return
     end
 
-    local prompt = "Roast the person named " .. target .. " based on these recent messages from the chat. Be brutal but funny."
+    local formatted_history = "Here is chat history:\n"
+    for i = #history, 1, -1 do
+        formatted_history = formatted_history .. history[i] .. "\n"
+    end
     
-    local status, response = pcall(function() return ctx:llm_generate_with_context(prompt, history) end)
+    local prompt = formatted_history .. "\nRoast the person named " .. target .. " based on these recent messages from the chat. Be brutal but funny."
+    
+    local status, response = pcall(function() return ctx:llm_generate(prompt) end)
     if status and response and response ~= "" then
         ctx:reply(response)
     else
