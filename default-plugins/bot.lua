@@ -26,6 +26,7 @@ function on_command(ctx)
     if status and response and response ~= "" then
         ctx:edit_message(msg_ts, response)
     else
-        ctx:edit_message(msg_ts, "❌ Failed to generate response. Error: " .. tostring(response))
+        print("AI generation error: " .. tostring(response))
+        ctx:edit_message(msg_ts, "❌ I encountered an error while thinking.")
     end
 end
