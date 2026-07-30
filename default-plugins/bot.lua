@@ -7,7 +7,14 @@ function on_command(ctx)
     end
     
     local prompt = table.concat(ctx.args, " ")
-    local status, response = pcall(function() return ctx:llm_generate(prompt) end)
+    
+    -- Fetch the last 10 messages from the chat to give the bot context!
+    local history = ctx:get_chat_history(10) or {}
+    
+    local status, response = pcall(function() 
+        return ctx:llm_generate_with_context(prompt, history) 
+    end)
+    
     if status and response and response ~= "" then
         ctx:reply(response)
     else
