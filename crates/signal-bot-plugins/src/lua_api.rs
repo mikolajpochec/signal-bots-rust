@@ -456,6 +456,8 @@ impl LuaUserData for PluginContext {
                 }
                 messages.push(serde_json::json!({"role": "user", "content": prompt}));
 
+                tracing::info!("Sending AI prompt:\n{:#?}", messages);
+
                 let body = serde_json::json!({
                     "model": ai_cfg.model,
                     "messages": messages
@@ -508,6 +510,8 @@ impl LuaUserData for PluginContext {
                     messages.push(serde_json::json!({"role": "user", "content": msg}));
                 }
                 messages.push(serde_json::json!({"role": "user", "content": prompt}));
+
+                tracing::info!("Sending AI prompt with context:\n{:#?}", messages);
 
                 let body = serde_json::json!({
                     "model": ai_cfg.model,
