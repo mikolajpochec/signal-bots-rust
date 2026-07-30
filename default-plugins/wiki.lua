@@ -1,4 +1,5 @@
 description = "Search Wikipedia. Format: {::prefix}wiki <query>"
+group = "Tools"
 
 local function urlencode(str)
     if str then

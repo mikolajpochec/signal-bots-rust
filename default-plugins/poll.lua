@@ -1,4 +1,5 @@
 description = "Create a poll. Format: {::prefix}poll Question | Option 1 | 👍=Option 2"
+group = "Tools"
 
 function trim(s)
     return s:match("^%s*(.-)%s*$")

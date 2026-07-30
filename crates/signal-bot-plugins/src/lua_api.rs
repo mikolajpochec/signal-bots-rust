@@ -514,7 +514,7 @@ impl LuaUserData for PluginContext {
                 }
 
                 let parsed: serde_json::Value = res.json().await.map_err(|e| mlua::Error::external(e))?;
-                let content = parsed.get("choices")
+                let mut content_str = parsed.get("choices")
                     .and_then(|c| c.as_array())
                     .and_then(|c| c.first())
                     .and_then(|c| c.get("message"))
@@ -522,8 +522,14 @@ impl LuaUserData for PluginContext {
                     .and_then(|c| c.as_str())
                     .unwrap_or("")
                     .to_string();
+                
+                if content_str.starts_with("User Safety:") {
+                    if let Some(idx) = content_str.find('\n') {
+                        content_str = content_str[idx+1..].trim_start().to_string();
+                    }
+                }
 
-                Ok::<_, mlua::Error>(content)
+                Ok::<_, mlua::Error>(content_str)
             })?;
             Ok(response)
         });
@@ -569,7 +575,7 @@ impl LuaUserData for PluginContext {
                 }
 
                 let parsed: serde_json::Value = res.json().await.map_err(|e| mlua::Error::external(e))?;
-                let content = parsed.get("choices")
+                let mut content_str = parsed.get("choices")
                     .and_then(|c| c.as_array())
                     .and_then(|c| c.first())
                     .and_then(|c| c.get("message"))
@@ -578,7 +584,13 @@ impl LuaUserData for PluginContext {
                     .unwrap_or("")
                     .to_string();
 
-                Ok::<_, mlua::Error>(content)
+                if content_str.starts_with("User Safety:") {
+                    if let Some(idx) = content_str.find('\n') {
+                        content_str = content_str[idx+1..].trim_start().to_string();
+                    }
+                }
+
+                Ok::<_, mlua::Error>(content_str)
             })?;
             Ok(response)
         });

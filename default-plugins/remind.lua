@@ -3,6 +3,7 @@ aliases = {
     reminders = "View pending reminders.",
     ["reminder-rm"] = "Remove a reminder. Usage: {::prefix}reminder-rm <id>"
 }
+group = "Tools"
 
 function on_command(ctx)
     if ctx.trigger == "reminder-rm" then

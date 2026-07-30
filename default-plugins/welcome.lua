@@ -1,5 +1,5 @@
 description = "Generate a warm welcome message for someone. Format: /welcome <name>"
-group = "Fun & Social"
+group = "AI"
 
 function on_command(ctx)
     if #ctx.args == 0 then

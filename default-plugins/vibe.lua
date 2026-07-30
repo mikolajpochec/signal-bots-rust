@@ -1,5 +1,5 @@
 description = "Check the vibe of the chat. Format: /vibe"
-group = "Fun & Social"
+group = "AI"
 
 function on_command(ctx)
     local msg_ts = ctx:reply_get_timestamp("Checking vibes... 🔮")

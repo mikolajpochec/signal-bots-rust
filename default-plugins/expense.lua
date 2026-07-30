@@ -1,5 +1,5 @@
 description = "Track group expenses. Format: /expense add <amount> <desc> | list | clear"
-group = "Utility & Productivity"
+group = "Tools"
 
 function on_command(ctx)
     -- Initialize table

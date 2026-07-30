@@ -1,4 +1,5 @@
 description = "Ask the bot a question."
+group = "AI"
 
 function on_command(ctx)
     if #ctx.args == 0 then

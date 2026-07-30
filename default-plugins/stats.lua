@@ -1,5 +1,5 @@
 description = "Show the top 5 most active chatters in this group. Format: /stats"
-group = "Utility & Productivity"
+group = "Tools"
 
 function on_command(ctx)
     if not ctx.is_group then

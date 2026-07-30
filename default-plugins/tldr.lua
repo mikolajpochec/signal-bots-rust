@@ -1,5 +1,5 @@
 description = "Summarize the last 50 messages. Format: /tldr"
-group = "Fun & Social"
+group = "AI"
 
 function on_command(ctx)
     local msg_ts = ctx:reply_get_timestamp("Reading history... 📚")

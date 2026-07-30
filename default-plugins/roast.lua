@@ -1,4 +1,5 @@
 description = "Roast a user based on their recent messages. Usage: {::prefix}roast <name>"
+group = "AI"
 
 function on_command(ctx)
     local target = table.concat(ctx.args, " ")
