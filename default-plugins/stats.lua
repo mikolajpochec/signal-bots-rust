@@ -26,5 +26,17 @@ function on_command(ctx)
         msg = msg .. i .. ". " .. name .. ": " .. count .. " messages\n"
     end
     
+    local status_ts, results_ts = pcall(function()
+        return ctx:db_query("SELECT MIN(timestamp) FROM messages WHERE group_id = ?1", {ctx.group_id})
+    end)
+    
+    if status_ts and results_ts and #results_ts > 0 and results_ts[1][1] ~= "NULL" then
+        local min_ts = tonumber(results_ts[1][1])
+        if min_ts then
+            local date_str = os.date("%Y-%m-%d %H:%M", math.floor(min_ts / 1000))
+            msg = msg .. "from " .. date_str
+        end
+    end
+
     ctx:reply(msg)
 end
