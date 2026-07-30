@@ -256,6 +256,42 @@ impl LuaUserData for PluginContext {
             Ok(msgs)
         });
 
+        methods.add_method("db_execute", |_, _, (sql, params): (String, Vec<String>)| {
+            let conn = rusqlite::Connection::open("chat_history.db").map_err(mlua::Error::external)?;
+            let params_mapped: Vec<&dyn rusqlite::ToSql> = params.iter().map(|s| s as &dyn rusqlite::ToSql).collect();
+            conn.execute(&sql, &params_mapped[..]).map_err(mlua::Error::external)?;
+            Ok(())
+        });
+
+        methods.add_method("db_query", |_, _, (sql, params): (String, Vec<String>)| {
+            let conn = rusqlite::Connection::open("chat_history.db").map_err(mlua::Error::external)?;
+            let mut stmt = conn.prepare(&sql).map_err(mlua::Error::external)?;
+            let params_mapped: Vec<&dyn rusqlite::ToSql> = params.iter().map(|s| s as &dyn rusqlite::ToSql).collect();
+            let col_count = stmt.column_count();
+            
+            let iter = stmt.query_map(&params_mapped[..], |row| {
+                let mut row_data = Vec::with_capacity(col_count);
+                for i in 0..col_count {
+                    let val = match row.get_ref(i)? {
+                        rusqlite::types::ValueRef::Null => "NULL".to_string(),
+                        rusqlite::types::ValueRef::Integer(i) => i.to_string(),
+                        rusqlite::types::ValueRef::Real(f) => f.to_string(),
+                        rusqlite::types::ValueRef::Text(t) => String::from_utf8_lossy(t).into_owned(),
+                        rusqlite::types::ValueRef::Blob(_) => "<BLOB>".to_string(),
+                    };
+                    row_data.push(val);
+                }
+                Ok(row_data)
+            }).map_err(mlua::Error::external)?;
+            
+            let mut results = Vec::new();
+            for r in iter {
+                if let Ok(r) = r {
+                    results.push(r);
+                }
+            }
+            Ok(results)
+        });
 
         // ctx:append_file(filename, text) — append text to a file in default-plugins/data
         methods.add_method("append_file", |_, _, (filename, text): (String, String)| {
