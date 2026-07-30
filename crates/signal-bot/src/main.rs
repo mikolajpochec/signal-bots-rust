@@ -257,6 +257,13 @@ async fn main() -> anyhow::Result<()> {
                 model: a.model,
                 system_prompt: a.system_prompt,
             });
+            
+            let config_path = std::path::Path::new(&config);
+            let db_path = config_path.parent()
+                .unwrap_or(std::path::Path::new(""))
+                .join("chat_history.db")
+                .to_string_lossy()
+                .into_owned();
 
             let engine = signal_bot_core::engine::Engine::new(
                 client.clone(),
@@ -266,6 +273,7 @@ async fn main() -> anyhow::Result<()> {
                 config_data.bot.admins.clone(),
                 plugin_manager,
                 ai_config,
+                db_path,
             );
             engine.run().await?;
         },

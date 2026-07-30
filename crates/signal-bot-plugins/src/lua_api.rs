@@ -29,6 +29,8 @@ pub struct PluginContext {
     pub reaction_is_remove: Option<bool>,
     // --- AI fields ---
     pub ai: Option<AiPluginConfig>,
+    // --- Database ---
+    pub db_path: String,
 }
 
 #[derive(Clone, Debug)]
@@ -199,7 +201,7 @@ impl LuaUserData for PluginContext {
         });
 
         methods.add_method("get_user_history", |_, this, (user_uuid, limit): (String, u32)| {
-            let conn = rusqlite::Connection::open("chat_history.db").map_err(mlua::Error::external)?;
+            let conn = rusqlite::Connection::open(&this.db_path).map_err(mlua::Error::external)?;
             let mut stmt = if this.is_group {
                 let group_id = this.group_id.clone().unwrap_or_default();
                 conn.prepare("SELECT sender_name, text FROM messages WHERE group_id = ?1 AND sender_uuid = ?2 ORDER BY timestamp DESC LIMIT ?3").map_err(mlua::Error::external)?
@@ -227,7 +229,7 @@ impl LuaUserData for PluginContext {
         });
 
         methods.add_method("get_chat_history", |_, this, limit: u32| {
-            let conn = rusqlite::Connection::open("chat_history.db").map_err(mlua::Error::external)?;
+            let conn = rusqlite::Connection::open(&this.db_path).map_err(mlua::Error::external)?;
             let mut stmt = if this.is_group {
                 let group_id = this.group_id.clone().unwrap_or_default();
                 conn.prepare("SELECT sender_name, text FROM messages WHERE group_id = ?1 ORDER BY timestamp DESC LIMIT ?2").map_err(mlua::Error::external)?
@@ -256,15 +258,15 @@ impl LuaUserData for PluginContext {
             Ok(msgs)
         });
 
-        methods.add_method("db_execute", |_, _, (sql, params): (String, Vec<String>)| {
-            let conn = rusqlite::Connection::open("chat_history.db").map_err(mlua::Error::external)?;
+        methods.add_method("db_execute", |_, this, (sql, params): (String, Vec<String>)| {
+            let conn = rusqlite::Connection::open(&this.db_path).map_err(mlua::Error::external)?;
             let params_mapped: Vec<&dyn rusqlite::ToSql> = params.iter().map(|s| s as &dyn rusqlite::ToSql).collect();
             conn.execute(&sql, &params_mapped[..]).map_err(mlua::Error::external)?;
             Ok(())
         });
 
-        methods.add_method("db_query", |_, _, (sql, params): (String, Vec<String>)| {
-            let conn = rusqlite::Connection::open("chat_history.db").map_err(mlua::Error::external)?;
+        methods.add_method("db_query", |_, this, (sql, params): (String, Vec<String>)| {
+            let conn = rusqlite::Connection::open(&this.db_path).map_err(mlua::Error::external)?;
             let mut stmt = conn.prepare(&sql).map_err(mlua::Error::external)?;
             let params_mapped: Vec<&dyn rusqlite::ToSql> = params.iter().map(|s| s as &dyn rusqlite::ToSql).collect();
             let col_count = stmt.column_count();

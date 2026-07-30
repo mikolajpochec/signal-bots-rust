@@ -16,6 +16,7 @@ pub struct Engine {
     admins: Vec<String>,
     plugin_manager: Option<PluginManager>,
     ai: Option<signal_bot_plugins::lua_api::AiPluginConfig>,
+    db_path: String,
     start_time: std::time::Instant,
 }
 
@@ -28,6 +29,7 @@ impl Engine {
         admins: Vec<String>,
         plugin_manager: Option<PluginManager>,
         ai: Option<signal_bot_plugins::lua_api::AiPluginConfig>,
+        db_path: String,
     ) -> Self {
         Self {
             client,
@@ -37,6 +39,7 @@ impl Engine {
             admins,
             plugin_manager,
             ai,
+            db_path,
             start_time: std::time::Instant::now(),
         }
     }
@@ -69,6 +72,7 @@ impl Engine {
                 reaction_target_timestamp: None,
                 reaction_is_remove: None,
                 ai: self.ai.clone(),
+                db_path: self.db_path.clone(),
             };
             pm.broadcast_lifecycle("on_spawn", sys_ctx).await;
         }
@@ -105,6 +109,7 @@ impl Engine {
                             reaction_target_timestamp: None,
                             reaction_is_remove: None,
                             ai: self.ai.clone(),
+                            db_path: self.db_path.clone(),
                         };
                         pm.broadcast_lifecycle("on_death", sys_ctx).await;
                         tokio::time::sleep(std::time::Duration::from_secs(2)).await;
@@ -145,7 +150,7 @@ impl Engine {
                                 }
                                 
                                 if !text.is_empty() {
-                                    if let Ok(db) = crate::db::Db::new("chat_history.db") {
+                                    if let Ok(db) = crate::db::Db::new(&self.db_path) {
                                         let _ = db.insert_message(
                                             envelope.timestamp.unwrap_or(0) as i64,
                                             group_id.as_deref(),
@@ -202,6 +207,7 @@ impl Engine {
                                                             reaction_target_timestamp: None,
                                                             reaction_is_remove: None,
                                                             ai: self.ai.clone(),
+                                                            db_path: self.db_path.clone(),
                                                         };
                                                         let pm = pm.clone();
                                                         let trigger_name = trigger_name.clone();
@@ -237,6 +243,7 @@ impl Engine {
                                                         reaction_target_timestamp: None,
                                                         reaction_is_remove: None,
                                                         ai: self.ai.clone(),
+                                                        db_path: self.db_path.clone(),
                                                     };
                                                     let pm = pm.clone();
                                                     tokio::spawn(async move {
@@ -272,6 +279,7 @@ impl Engine {
                                             reaction_target_timestamp: reaction.target_sent_timestamp,
                                             reaction_is_remove: reaction.is_remove,
                                             ai: self.ai.clone(),
+                                            db_path: self.db_path.clone(),
                                         };
                                         pm.broadcast_reaction(plugin_ctx).await;
                                     }
