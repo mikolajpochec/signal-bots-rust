@@ -17,13 +17,15 @@ function on_command(ctx)
     local current_sender = ctx.sender_name or "Unknown"
     local final_prompt = formatted_history .. "\nHere is current message:\n" .. current_sender .. ": " .. prompt
     
+    local msg_ts = ctx:reply_get_timestamp("Thinking... 🤔")
+    
     local status, response = pcall(function() 
         return ctx:llm_generate(final_prompt) 
     end)
     
     if status and response and response ~= "" then
-        ctx:reply(response)
+        ctx:edit_message(msg_ts, response)
     else
-        ctx:reply("❌ Failed to generate response. Error: " .. tostring(response))
+        ctx:edit_message(msg_ts, "❌ Failed to generate response. Error: " .. tostring(response))
     end
 end

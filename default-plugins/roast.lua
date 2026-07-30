@@ -20,10 +20,12 @@ function on_command(ctx)
     
     local prompt = formatted_history .. "\nRoast the person named " .. target .. " based on these recent messages from the chat. Be brutal but funny."
     
+    local msg_ts = ctx:reply_get_timestamp("Thinking... 🤔")
+    
     local status, response = pcall(function() return ctx:llm_generate(prompt) end)
     if status and response and response ~= "" then
-        ctx:reply(response)
+        ctx:edit_message(msg_ts, response)
     else
-        ctx:reply("❌ Failed to generate roast. Error: " .. tostring(response))
+        ctx:edit_message(msg_ts, "❌ Failed to generate roast. Error: " .. tostring(response))
     end
 end
