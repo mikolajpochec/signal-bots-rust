@@ -16,9 +16,9 @@ function on_command(ctx)
     local prompt = "Roast the person named " .. target .. " based on these recent messages from the chat. Be brutal but funny."
     
     local status, response = pcall(function() return ctx:llm_generate_with_context(prompt, history) end)
-    if status and response then
+    if status and response and response ~= "" then
         ctx:reply(response)
     else
-        ctx:reply("❌ Failed to generate roast.")
+        ctx:reply("❌ Failed to generate roast. Error: " .. tostring(response))
     end
 end

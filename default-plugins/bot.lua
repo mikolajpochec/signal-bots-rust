@@ -8,9 +8,9 @@ function on_command(ctx)
     
     local prompt = table.concat(ctx.args, " ")
     local status, response = pcall(function() return ctx:llm_generate(prompt) end)
-    if status and response then
+    if status and response and response ~= "" then
         ctx:reply(response)
     else
-        ctx:reply("❌ Failed to generate response.")
+        ctx:reply("❌ Failed to generate response. Error: " .. tostring(response))
     end
 end
